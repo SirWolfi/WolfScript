@@ -1,0 +1,10 @@
+func fib [x] {
+    if ($x < 2) {
+        echo -nn 1
+    }
+    else {
+        echo -nn !{expr (!{fib !{expr ($x - 1)}} + !{fib !{expr ($x - 2)}})}
+    }
+}
+
+echo Number 15 is: !{fib 15}

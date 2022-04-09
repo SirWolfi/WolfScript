@@ -1,0 +1,75 @@
+list -g field [["-","-","-"],["-","-","-"],["-","-","-"]]
+set wplayer none
+set player1 O
+set player2 X
+
+func draw_field [] {
+    echo !{take 0 !{take 0 field}} | !{take 1 !{take 0 field}} | !{take 2 !{take 0 field}}
+    echo !{take 0 !{take 1 field}} | !{take 1 !{take 1 field}} | !{take 2 !{take 1 field}}
+    echo !{take 0 !{take 2 field}} | !{take 1 !{take 2 field}} | !{take 2 !{take 2 field}}
+}
+
+func reset_field [] {
+    list -g field [["-","-","-"],["-","-","-"],["-","-","-"]]
+}
+
+func set_field [row,col,player] {
+    if ($row = 0) {
+        list -g field [ !{put !{take 0 field } $col $player} , !{take 1 field } , !{take 2 field } ]
+    }
+    elif ($row = 1) {
+        list -g field [ !{take 0 field }, !{put !{take 1 field } $col $player}, !{take 2 field } ]
+
+    }
+    elif ($row = 2) {
+        list -g field [ !{take 0 field } , !{take 1 field } , !{put !{take 2 field } $col $player} ]
+    }
+    else {
+        # no
+    }
+}
+
+func handle_input [player] {
+    while (true) {
+        getline r Row:
+        if ($r = q) {
+            exit
+        }
+        if ($r = reset) {
+            reset_field
+            clear
+            draw_field
+            continue
+        }
+
+        getline c Column:
+
+        if ($r < 3) {
+            if ($c < 3) {
+                set_field $r $c $player
+                break
+            }
+            else {
+                echo try again...
+            }
+        }
+        else {
+            echo try again...
+        }
+    }
+
+    clear
+}
+
+func init [] {
+    draw_field
+    while (true) {
+        handle_input $player1
+        draw_field
+
+        handle_input $player2
+        draw_field
+    }
+}
+
+init

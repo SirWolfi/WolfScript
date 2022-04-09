@@ -1,7 +1,4 @@
 *.log
-*.wsh
-*.wsc
-*.ws 
 helper
 *.inipp
 *.bash

@@ -1,0 +1,22 @@
+class A {
+    member mem 100
+
+    method foo [] {
+        B:bar
+    }
+
+    method bar [] {
+        echo $mem
+    }
+
+    method set_mem [val] {
+        set mem $val -nn
+    }
+}
+
+A B
+A C
+C:set_mem 10
+B:foo
+C:foo
+C:bar

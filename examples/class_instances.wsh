@@ -1,0 +1,16 @@
+class A {
+    member x 32
+    
+    method foo [stuff] {
+        set x !{expr ($x - $stuff)} -nn
+        echo The value is: $x
+    }
+}
+
+A B
+
+B:foo 10
+B:foo 1
+
+A C
+echo C's x is: $C:x
