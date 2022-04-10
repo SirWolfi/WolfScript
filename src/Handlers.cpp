@@ -425,6 +425,9 @@ int run(std::vector<std::string> lines, bool main, std::map<std::string,std::str
             Global::push_call_stack(name);
             Global::error_code = com.fun(com.parser.parse(lex));
             Global::set_global_variable("?",std::to_string(Global::error_code));
+            if(Global::error_code != 0) {
+                return Global::error_code;
+            }
             if(Global::error_code == 0)
                 Global::pop_call_stack();
         }

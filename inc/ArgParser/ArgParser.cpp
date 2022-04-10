@@ -96,7 +96,7 @@ bool ParsedArgs::has_bin() const {
 size_t ArgParser::find(std::string name, bool& failed) {
     for(size_t i = 0; i < args.size(); ++i) {
         LOG(":" << args[i].name << " == " << name)
-        if(args[i].name == name || args[i].hasAlias(name)) {
+        if((args[i].name == name || args[i].hasAlias(name)) && args[i].type != ARG_GET) {
             LOG("found!")
             failed = false;
             return i;
@@ -109,6 +109,7 @@ size_t ArgParser::find(std::string name, bool& failed) {
 size_t ArgParser::find_next_getarg(bool& failed) {
     LOG("unusedGetArgs:" << unusedGetArgs)
     if(unusedGetArgs == 0) {
+        LOG("Failed!")
         failed = true;
         return 0;
     }
@@ -119,6 +120,7 @@ size_t ArgParser::find_next_getarg(bool& failed) {
             return i;
         }
     }
+    LOG("Failed!")
     failed = true;
     return 0;
 }
@@ -139,7 +141,7 @@ ArgParser& ArgParser::setbin() {
 
 ParsedArgs ArgParser::parse(std::vector<std::string> args) {
     if(args.size() == 0) {
-        return ParsedArgs({},ArgParserErrors::NO_ARGS,"");
+        return ParsedArgs({},ArgParserErrors::NO_ARGS,"No Arguments!");
     }
     unusedGetArgs = 0;
     bool failed = false;
@@ -155,7 +157,7 @@ ParsedArgs ArgParser::parse(std::vector<std::string> args) {
     failed = false;
     for(size_t i = 0; i < args.size(); ++i) {
         size_t index = find(args[i],failed);
-        LOG("find(" << args[i] << ") = " << index)
+        LOG("find(" << args[i] << ") = " << index << " | failed:" << failed)
         if(failed) {
             //LOG("failed = true")
             //return ParsedArgs({},true);
@@ -170,7 +172,7 @@ ParsedArgs ArgParser::parse(std::vector<std::string> args) {
                 }
 
                 LOG("failed = true")
-                return ParsedArgs({},ArgParserErrors::UNKNOWN_ARG,args[i]);
+                return ParsedArgs({},ArgParserErrors::UNKNOWN_ARG,args[i] + " is not a known argument!");
             }
             else if(this->args[index].type == ARG_GET) {
                 this->args[index].val = args[i];
@@ -209,11 +211,12 @@ ParsedArgs ArgParser::parse(std::vector<std::string> args) {
 
     // check for unmatching dependencies
     for(size_t i = 0; i < tmpa.size(); ++i) { //clear
+        LOG("Checking dependencies on " << tmpa[i].name << " with val:\"" << tmpa[i].val << "\" and data:" << static_cast<int>(tmpa[i].priority) << "|" << static_cast<int>(tmpa[i].type) << "|" << tmpa[i].is )
         if(((tmpa[i].val == "" && tmpa[i].type != ARG_TAG ) || (!tmpa[i].is && tmpa[i].type == ARG_TAG)) && tmpa[i].priority == Arg::Priority::FORCE) {
-            return ParsedArgs(tmpa,ArgParserErrors::UNMATCHED_DEP_FORCE,tmpa[i].name);
+            return ParsedArgs(tmpa,ArgParserErrors::UNMATCHED_DEP_FORCE,tmpa[i].name + " has an unmatching dependency!");
         }
         else if(((tmpa[i].val != "" && tmpa[i].type != ARG_TAG ) || (tmpa[i].is && tmpa[i].type == ARG_TAG)) && tmpa[i].priority == Arg::Priority::IGNORE) {
-            return ParsedArgs(tmpa,ArgParserErrors::UNMATCHED_DEP_IGNORE,tmpa[i].name);
+            return ParsedArgs(tmpa,ArgParserErrors::UNMATCHED_DEP_IGNORE,tmpa[i].name + " has an unmatching dependency!");
         }
     }
 
@@ -223,7 +226,7 @@ ParsedArgs ArgParser::parse(std::vector<std::string> args) {
 
 ParsedArgs ArgParser::parse(char** args, int argc) {
     if(argc == 1) {
-        return ParsedArgs({},ArgParserErrors::NO_ARGS,"");
+        return ParsedArgs({},ArgParserErrors::NO_ARGS,"No Arguments!");
     }
 	std::vector<std::string> par;
 	

@@ -7,6 +7,7 @@
 #include "../inc/Handlers.hpp"
 #include "../inc/Tools.hpp"
 #include "../inc/Commands.hpp"
+
 /*
 void shell() {
     Global::current = fs::current_path();
@@ -23,7 +24,15 @@ void shell() {
 }*/
 
 void run_file(std::string file) {
+    if(!fs::exists(file)) {
+        std::cout << "Unknown file: " << file << "\n";
+        return;
+    }
+
     std::string src = Tools::read(file);
+    if(Tools::is_empty(src)) {
+        return;
+    }
     auto lines = IniHelper::tls::split_by(src,{'\n','\0'},{},{},true,true,false);
 
     Global::current = fs::current_path();
@@ -66,6 +75,7 @@ int main(int argc, char** argv) {
     ArgParser parser = ArgParser()
         .enableString('"')
         .addArg("--help",ARG_TAG,{"-h"})
+        .addArg("--log",ARG_TAG,{"-l"})
         .addArg("file",ARG_GET,{});
 
     ParsedArgs pargs = parser.parse(argv, argc);
@@ -75,12 +85,17 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    if(pargs["--log"]) {
+        logging::file = "Debug.log";
+        CLEAR_LOG
+    }
+
     if(pargs["--help"]) {
         help_message();
     }
-    else if(!pargs.has("file")) {
-        shell();
-    }
+    //else if(!pargs.has("file")) {
+        //shell();
+    //}
     else if(pargs.has("file")) {
         run_file(pargs("file"));
     }

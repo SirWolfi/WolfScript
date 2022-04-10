@@ -155,7 +155,7 @@ inline const std::vector<Command> commands = {
             o.pop_back();
             std::cout << o;
         }
-        if(!pargs["-nn"])
+        if(!pargs["-nn"] && Global::in_subshell == 0)
             std::cout << "\n";
         return 0;
     }},
@@ -906,20 +906,30 @@ inline const std::vector<Command> commands = {
         return 0;
     }},
     {"take",{}, ArgParser()
-        .addArg("index",ARG_GET,{},0,Arg::Priority::FORCE)
-        .addArg("list",ARG_GET,{},1,Arg::Priority::FORCE)
+        .addArg("index",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("list",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("-nstring",ARG_TAG,{"-ns"})
+        .addArg("-fstring",ARG_TAG,{"-fs"})
     ,[](ParsedArgs pargs)->int { // return error code!
         
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
         }
-        List nlist;
-        if(!List::is(pargs("list"))) {
-            nlist = Global::get_list(pargs("list"));
+        List list;
+        if(List::is(pargs("list")) && !pargs["-fstring"]) {
+            list.from_string(pargs("list"));
         }
         else {
-            nlist.from_string(pargs("list"));
+            if(Global::is_list(pargs("list")) && !pargs["-fstring"]) {
+                list = Global::get_list(pargs("list"));
+            }
+            else if(!pargs["-nstring"] || pargs["-fstring"]) {
+                std::string str = pargs("list");
+                for(auto i : str) {
+                    list.elements.push_back(std::string(1,i));
+                }
+            }
         }
 
         int at = 0;
@@ -931,12 +941,12 @@ inline const std::vector<Command> commands = {
             return 2;
         }
 
-        if(at >= nlist.elements.size()) {
+        if(at >= list.elements.size()) {
             Global::err_msg = "\"" + pargs("list") + "\" has no index " + pargs("index") + "\n";
             return 2;
         }
 
-        std::cout << nlist.elements[at];
+        std::cout << list.elements[at];
 
         if(Global::in_subshell == 0) {
             std::cout << "\n";
@@ -945,7 +955,9 @@ inline const std::vector<Command> commands = {
         return 0;
     }},
     {"length",{}, ArgParser()
-        .addArg("list",ARG_GET,{},0,Arg::Priority::FORCE)
+        .addArg("list",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("-nstring",ARG_TAG,{"-ns"})
+        .addArg("-fstring",ARG_TAG,{"-fs"})
     ,[](ParsedArgs pargs)->int { // return error code!
         
         if(!pargs) {
@@ -954,18 +966,19 @@ inline const std::vector<Command> commands = {
         }
 
         List list;
-        if(!List::is(pargs("list"))) {
-            if(Global::is_list(pargs("list"))) {
+        if(List::is(pargs("list")) && !pargs["-fstring"]) {
+            list.from_string(pargs("list"));
+        }
+        else {
+            if(Global::is_list(pargs("list")) && !pargs["-fstring"]) {
                 list = Global::get_list(pargs("list"));
             }
-            else {
-                for(auto i : pargs("list")) {
+            else if(!pargs["-nstring"] || pargs["-fstring"]) {
+                std::string str = pargs("list");
+                for(auto i : str) {
                     list.elements.push_back(std::string(1,i));
                 }
             }
-        }
-        else {
-            list.from_string(pargs("list"));
         }
         std::cout << list.elements.size();
 
@@ -975,9 +988,11 @@ inline const std::vector<Command> commands = {
         return 0;
     }},
     {"insert",{}, ArgParser()
-        .addArg("list",ARG_GET,{},0,Arg::Priority::FORCE)
-        .addArg("index",ARG_GET,{},1,Arg::Priority::FORCE)
-        .addArg("what",ARG_GET,{},2,Arg::Priority::FORCE)
+        .addArg("list",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("index",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("what",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("-nstring",ARG_TAG,{"-ns"})
+        .addArg("-fstring",ARG_TAG,{"-fs"})
     ,[](ParsedArgs pargs)->int { // return error code!
         
         if(!pargs) {
@@ -986,8 +1001,20 @@ inline const std::vector<Command> commands = {
         }
 
         List list;
-
-        list = Global::get_list(pargs("list"));
+        if(List::is(pargs("list")) && !pargs["-fstring"]) {
+            list.from_string(pargs("list"));
+        }
+        else {
+            if(Global::is_list(pargs("list")) && !pargs["-fstring"]) {
+                list = Global::get_list(pargs("list"));
+            }
+            else if(!pargs["-nstring"] || pargs["-fstring"]) {
+                std::string str = pargs("list");
+                for(auto i : str) {
+                    list.elements.push_back(std::string(1,i));
+                }
+            }
+        }
 
         int at = 0;
         try {
@@ -1013,9 +1040,11 @@ inline const std::vector<Command> commands = {
         return 0;
     }},
     {"put",{}, ArgParser()
-        .addArg("list",ARG_GET,{},0,Arg::Priority::FORCE)
-        .addArg("index",ARG_GET,{},1,Arg::Priority::FORCE)
-        .addArg("what",ARG_GET,{},2,Arg::Priority::FORCE)
+        .addArg("list",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("index",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("what",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("-nstring",ARG_TAG,{"-ns"})
+        .addArg("-fstring",ARG_TAG,{"-fs"})
     ,[](ParsedArgs pargs)->int { // return error code!
         
         if(!pargs) {
@@ -1024,12 +1053,19 @@ inline const std::vector<Command> commands = {
         }
 
         List list;
-
-        if(List::is(pargs("list"))) {
+        if(List::is(pargs("list")) && !pargs["-fstring"]) {
             list.from_string(pargs("list"));
         }
         else {
-            list = Global::get_list(pargs("list"));
+            if(Global::is_list(pargs("list")) && !pargs["-fstring"]) {
+                list = Global::get_list(pargs("list"));
+            }
+            else if(!pargs["-nstring"] || pargs["-fstring"]) {
+                std::string str = pargs("list");
+                for(auto i : str) {
+                    list.elements.push_back(std::string(1,i));
+                }
+            }
         }
 
         int at = 0;
@@ -1055,24 +1091,33 @@ inline const std::vector<Command> commands = {
         return 0;
     }},
     {"push",{}, ArgParser()
-        .addArg("list",ARG_GET,{},0,Arg::Priority::FORCE)
-        .addArg("what",ARG_GET,{},1,Arg::Priority::FORCE)
+        .addArg("list",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("what",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("-nstring",ARG_TAG,{"-ns"})
+        .addArg("-fstring",ARG_TAG,{"-fs"})
     ,[](ParsedArgs pargs)->int { // return error code!
         
         if(!pargs) {
+            std::cout << "Error!\n";
             Global::err_msg = pargs.error();
             return 2;
         }
 
         List list;
-
-        if(List::is(pargs("list"))) {
+        if(List::is(pargs("list")) && !pargs["-fstring"]) {
             list.from_string(pargs("list"));
         }
         else {
-            list = Global::get_list(pargs("list"));
+            if(Global::is_list(pargs("list")) && !pargs["-fstring"]) {
+                list = Global::get_list(pargs("list"));
+            }
+            else if(!pargs["-nstring"] || pargs["-fstring"]) {
+                std::string str = pargs("list");
+                for(auto i : str) {
+                    list.elements.push_back(std::string(1,i));
+                }
+            }
         }
-
 
         list.elements.push_back(pargs("what"));
 

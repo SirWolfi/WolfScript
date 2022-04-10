@@ -5,6 +5,8 @@
 #include "Structs.hpp"
 #include "Global.hpp"
 
+#include <math.h>
+
 struct Operator {
     std::string name;
     std::string(*fun)(std::string,std::string,bool&);
@@ -42,7 +44,61 @@ inline std::vector<Operator> operators = {
         }
         failed = true;
         return "";
-    }}
+    }},
+    {"*",[](std::string left,std::string right,bool& failed)->std::string {
+        std::string typel = get_type(left), typer = get_type(right);
+
+        if(typel == "int" && typer == "int") {
+            return std::to_string(std::stoi(left) * std::stoi(right));
+        }
+        failed = true;
+        return "";
+    }},
+    {"/",[](std::string left,std::string right,bool& failed)->std::string {
+        std::string typel = get_type(left), typer = get_type(right);
+
+        if(typel == "int" && typer == "int") {
+            return std::to_string(std::stoi(left) / std::stoi(right));
+        }
+        failed = true;
+        return "";
+    }},
+    {"%",[](std::string left,std::string right,bool& failed)->std::string {
+        std::string typel = get_type(left), typer = get_type(right);
+
+        if(typel == "int" && typer == "int") {
+            return std::to_string(std::stoi(left) % std::stoi(right));
+        }
+        failed = true;
+        return "";
+    }},
+    {"^",[](std::string left,std::string right,bool& failed)->std::string {
+        std::string typel = get_type(left), typer = get_type(right);
+
+        if(typel == "int" && typer == "int") {
+            return std::to_string(std::pow(std::stoi(left), std::stoi(right)));
+        }
+        failed = true;
+        return "";
+    }},
+    {"|",[](std::string left,std::string right,bool& failed)->std::string {
+        std::string typel = get_type(left), typer = get_type(right);
+
+        if(typel == "int" && typer == "int") {
+            return std::to_string(std::stoi(left) | std::stoi(right));
+        }
+        failed = true;
+        return "";
+    }},
+    {"&",[](std::string left,std::string right,bool& failed)->std::string {
+        std::string typel = get_type(left), typer = get_type(right);
+
+        if(typel == "int" && typer == "int") {
+            return std::to_string(std::stoi(left) & std::stoi(right));
+        }
+        failed = true;
+        return "";
+    }},
 };
 
 

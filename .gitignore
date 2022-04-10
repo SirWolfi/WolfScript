@@ -3,3 +3,5 @@ helper
 *.inipp
 *.bash
 .vscode
+wolf-script
+test.wsc
