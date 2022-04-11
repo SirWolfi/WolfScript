@@ -112,13 +112,34 @@ void Tools::merge_maps(std::map<std::string,std::string> prio1, std::map<std::st
     }
 }
 
-std::vector<Function> Tools::merge_functions(std::vector<Function> f1, std::vector<Function> f2, std::string& err_msg) {
+std::vector<Function> Tools::merge_functions(std::vector<Function> f1, std::vector<Function> f2, std::string& err_msg, bool lookfor_virtual) {
+    auto ret = f1;
+    for(auto i : f2) {
+        for(size_t j = 0; j < ret.size(); ++j) {
+            if(i.name == ret[j].name) {
+                if(lookfor_virtual && ret[j].is_virtual) {
+                    ret.erase(ret.begin()+j);
+                    --j;
+                }
+                else {
+                    err_msg = "Double definition of function: " + i.name;
+                    return std::vector<Function>();
+                }
+            }
+        }
+        ret.push_back(i);
+    }
+    err_msg = "";
+    return ret;
+}
+
+std::vector<Class> Tools::merge_classes(std::vector<Class> f1, std::vector<Class> f2, std::string& err_msg) {
     auto ret = f1;
     for(auto i : f2) {
         for(auto j : ret) {
             if(i.name == j.name) {
-                err_msg = "Double definition of function: " + i.name;
-                return std::vector<Function>();
+                err_msg = "Double definition of: " + i.name;
+                return std::vector<Class>();
             }
         }
         ret.push_back(i);

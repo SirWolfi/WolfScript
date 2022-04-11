@@ -13,6 +13,7 @@ inline const std::vector<Command> commands = {
     {"help",{}, ArgParser()
 
     ,[](ParsedArgs pargs)->int { // return error code!
+    IN_CLASS_CHECK(false)
         if(!pargs && pargs != ArgParserErrors::NO_ARGS) {
             Global::err_msg = pargs.error();
             return 2;
@@ -27,6 +28,7 @@ inline const std::vector<Command> commands = {
     {"exit",{"q"}, ArgParser()
          .addArg("code",ARG_GET)
     ,[](ParsedArgs pargs)->int { // return error code!
+    IN_CLASS_CHECK(false)
         
         if(!pargs && pargs != ArgParserErrors::NO_ARGS) {
             Global::err_msg = pargs.error();
@@ -54,6 +56,7 @@ inline const std::vector<Command> commands = {
         .addArg("set3", ARG_GET, {},3)
         .addArg("set4", ARG_GET, {},4)
     ,[](ParsedArgs pargs)->int { // return error code!
+    IN_CLASS_CHECK(false)
         
         if(!pargs) {
             return 2;
@@ -121,7 +124,7 @@ inline const std::vector<Command> commands = {
          .addArg("-nn",ARG_TAG,{})
          .setbin()
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)
         if(!pargs && pargs != ArgParserErrors::NO_ARGS) {
             Global::err_msg = pargs.error();
             return 2;
@@ -145,7 +148,7 @@ inline const std::vector<Command> commands = {
          .addArg("-global",ARG_TAG,{"-g"})
          .addArg("-no-new",ARG_TAG,{"-nn"})
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -169,7 +172,7 @@ inline const std::vector<Command> commands = {
     {"varc",{}, ArgParser()
          
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs && pargs != ArgParserErrors::NO_ARGS) {
             Global::err_msg = pargs.error();
             return 2;
@@ -184,7 +187,7 @@ inline const std::vector<Command> commands = {
     {"dir",{}, ArgParser()
          .addArg("name",ARG_GET,{},0,Arg::Priority::FORCE)
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs && pargs != ArgParserErrors::NO_ARGS) {
             Global::err_msg = pargs.error();
             return 2;
@@ -197,7 +200,7 @@ inline const std::vector<Command> commands = {
     {"rm",{}, ArgParser()
          .addArg("item",ARG_GET,{},0,Arg::Priority::FORCE)
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs && pargs != ArgParserErrors::NO_ARGS) {
             Global::err_msg = pargs.error();
             return 2;
@@ -222,7 +225,7 @@ inline const std::vector<Command> commands = {
     }},
     {"errmsg",{}, ArgParser()
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs && pargs != ArgParserErrors::NO_ARGS) {
             Global::err_msg = pargs.error();
             return 2;
@@ -233,7 +236,7 @@ inline const std::vector<Command> commands = {
     {"ls",{}, ArgParser()
 
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs && pargs != ArgParserErrors::NO_ARGS) {
             Global::err_msg = pargs.error();
             return 2;
@@ -251,7 +254,7 @@ inline const std::vector<Command> commands = {
         .addArg("expr",ARG_GET,{},0,Arg::Priority::FORCE)
         .addArg("command",ARG_GET,{},1,Arg::Priority::FORCE)
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -305,7 +308,7 @@ inline const std::vector<Command> commands = {
         .addArg("what",ARG_GET,{},2,Arg::Priority::FORCE)
         .addArg("command",ARG_GET,{},3,Arg::Priority::FORCE)
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -365,7 +368,7 @@ inline const std::vector<Command> commands = {
          .addArg("count",ARG_GET,{},0,Arg::Priority::FORCE)
          .addArg("max",ARG_GET,{},1)
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -411,7 +414,7 @@ inline const std::vector<Command> commands = {
         .addArg("var",ARG_GET,{},0,Arg::Priority::FORCE)
         .setbin()
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -433,7 +436,7 @@ inline const std::vector<Command> commands = {
     {"pwd",{}, ArgParser()
 
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs && pargs != ArgParserErrors::NO_ARGS) {
             Global::err_msg = pargs.error();
             return 2;
@@ -447,7 +450,7 @@ inline const std::vector<Command> commands = {
     {"cd",{}, ArgParser()
         .addArg("dir",ARG_GET,{},0,Arg::Priority::FORCE)
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -477,7 +480,7 @@ inline const std::vector<Command> commands = {
         .addArg("var",ARG_GET,{},2,Arg::Priority::FORCE)
         .setbin()
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs || !pargs.has_bin()) {
             Global::err_msg = pargs.error();
             return 2;
@@ -504,7 +507,7 @@ inline const std::vector<Command> commands = {
         .addArg("expr",ARG_GET,{},0,Arg::Priority::FORCE)
         .addArg("command",ARG_GET,{},1,Arg::Priority::FORCE)
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -539,7 +542,7 @@ inline const std::vector<Command> commands = {
         .addArg("expr",ARG_GET,{},0,Arg::Priority::FORCE)
         .addArg("command",ARG_GET,{},1,Arg::Priority::FORCE)
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -574,7 +577,7 @@ inline const std::vector<Command> commands = {
     {"else",{}, ArgParser()
         .addArg("command",ARG_GET,{},0,Arg::Priority::FORCE)
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -602,7 +605,7 @@ inline const std::vector<Command> commands = {
     {"sleep",{"slp"}, ArgParser()
         .addArg("time",ARG_GET,{},0,Arg::Priority::FORCE)
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -618,6 +621,7 @@ inline const std::vector<Command> commands = {
     {"clear",{"cls"}, ArgParser()
          
     ,[](ParsedArgs pargs)->int { // return error code!
+    IN_CLASS_CHECK(false)
         if(!pargs && pargs != ArgParserErrors::NO_ARGS) {
             Global::err_msg = pargs.error();
             return 2;
@@ -632,7 +636,7 @@ inline const std::vector<Command> commands = {
     {"cat",{}, ArgParser()
         .addArg("file",ARG_GET,{},0,Arg::Priority::FORCE)
     ,[](ParsedArgs pargs)->int {
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -662,7 +666,7 @@ inline const std::vector<Command> commands = {
         .addArg("params",ARG_GET,{},1,Arg::Priority::FORCE)
         .addArg("commands",ARG_GET,{},2,Arg::Priority::FORCE)
     ,[](ParsedArgs pargs)->int { // return error code!
-        //
+    IN_CLASS_CHECK(false)
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -736,7 +740,7 @@ inline const std::vector<Command> commands = {
     {"break",{}, ArgParser()
 
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs && pargs != ArgParserErrors::NO_ARGS) {
             Global::err_msg = pargs.error();
             return 2;
@@ -754,7 +758,7 @@ inline const std::vector<Command> commands = {
     {"continue",{}, ArgParser()
 
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs && pargs != ArgParserErrors::NO_ARGS) {
             Global::err_msg = pargs.error();
             return 2;
@@ -774,7 +778,7 @@ inline const std::vector<Command> commands = {
         .addArg("val",ARG_GET,{},-1,Arg::Priority::FORCE)
         .addArg("-hard",ARG_TAG,{"-h"})
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -792,7 +796,7 @@ inline const std::vector<Command> commands = {
         .addArg("expr",ARG_GET,{},0,Arg::Priority::FORCE)
         //.addArg("var",ARG_GET,{},1,Arg::Priority::FORCE)
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -812,17 +816,18 @@ inline const std::vector<Command> commands = {
         return 0;
     },false},
     {"class",{}, ArgParser()
-        .addArg("name",ARG_GET,{},0,Arg::Priority::FORCE)
-        .addArg("body",ARG_GET,{},1,Arg::Priority::FORCE)
+        .addArg("name",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("body",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("-private",ARG_TAG,{"-p"})
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
         }
 
         Class new_class;
-
+        new_class.is_private = pargs["-private"];
         new_class.name = pargs("name");
         std::string body = pargs("body");
 
@@ -850,11 +855,37 @@ inline const std::vector<Command> commands = {
             return err;
         }
 
-        new_class.methods = Global::cache::new_defined_methods;
-        new_class.members = Global::cache::new_defined_members;
+        std::vector<Function> extends_functions;
+        std::map<std::string,std::string> extends_members;
+
+        for(auto i : Global::cache::new_class_extends) {
+            std::string errmsg;
+
+            extends_functions = Tools::merge_functions(extends_functions,i.methods,errmsg,true);
+            if(errmsg != "") {
+                Global::err_msg = errmsg;
+                Global::error_code = 3;
+                return 3;
+            }
+
+            Tools::merge_maps(i.members,extends_members);
+        }
+        
+        new_class.methods = extends_functions;
+        new_class.members = extends_members;
+
+        std::string errmsg;
+        new_class.methods = Tools::merge_functions(new_class.methods,Global::cache::new_defined_methods,errmsg,true);
+        if(errmsg != "") {
+            Global::err_msg = errmsg;
+            Global::error_code = 3;
+            return 3;
+        }
+        Tools::merge_maps(Global::cache::new_defined_members,new_class.members);
 
         Global::cache::new_defined_methods.clear();
         Global::cache::new_defined_members.clear();
+        Global::cache::new_class_extends.clear();
         Global::classes.top().push_back(new_class);
 
         return 0;
@@ -864,7 +895,7 @@ inline const std::vector<Command> commands = {
         .addArg("list",ARG_GET,{},-1,Arg::Priority::FORCE)
         .addArg("-global",ARG_TAG,{"-g"})
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -893,7 +924,7 @@ inline const std::vector<Command> commands = {
         .addArg("-nstring",ARG_TAG,{"-ns"})
         .addArg("-fstring",ARG_TAG,{"-fs"})
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -941,7 +972,7 @@ inline const std::vector<Command> commands = {
         .addArg("-nstring",ARG_TAG,{"-ns"})
         .addArg("-fstring",ARG_TAG,{"-fs"})
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -976,7 +1007,7 @@ inline const std::vector<Command> commands = {
         .addArg("-nstring",ARG_TAG,{"-ns"})
         .addArg("-fstring",ARG_TAG,{"-fs"})
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -1028,7 +1059,7 @@ inline const std::vector<Command> commands = {
         .addArg("-nstring",ARG_TAG,{"-ns"})
         .addArg("-fstring",ARG_TAG,{"-fs"})
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -1078,7 +1109,7 @@ inline const std::vector<Command> commands = {
         .addArg("-nstring",ARG_TAG,{"-ns"})
         .addArg("-fstring",ARG_TAG,{"-fs"})
     ,[](ParsedArgs pargs)->int { // return error code!
-        
+    IN_CLASS_CHECK(false)    
         if(!pargs) {
             std::cout << "Error!\n";
             Global::err_msg = pargs.error();
@@ -1111,10 +1142,12 @@ inline const std::vector<Command> commands = {
         return 0;
     }},
     {"method",{}, ArgParser()
-        .addArg("name",ARG_GET,{},0,Arg::Priority::FORCE)
-        .addArg("params",ARG_GET,{},1,Arg::Priority::FORCE)
-        .addArg("commands",ARG_GET,{},2,Arg::Priority::FORCE)
+        .addArg("name",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("params",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("commands",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("-virtual",ARG_TAG,{"-v","-vir"})
     ,[](ParsedArgs pargs)->int { // return error code!
+        IN_CLASS_CHECK(true)
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -1144,7 +1177,8 @@ inline const std::vector<Command> commands = {
         Function nfun;
         nfun.name = name;
         nfun.body = com;
-        
+        nfun.is_virtual = pargs["-virtual"];
+
         params.pop_back();
         params.erase(params.begin());
 
@@ -1171,6 +1205,7 @@ inline const std::vector<Command> commands = {
             }
             nfun.params = fpms;
         }
+
         Global::cache::new_defined_methods.push_back(nfun);
 
         return Global::error_code;
@@ -1179,6 +1214,7 @@ inline const std::vector<Command> commands = {
          .addArg("name",ARG_GET,{},-1,Arg::Priority::FORCE)
          .addArg("value",ARG_GET,{},-1,Arg::Priority::OPTIONAL)
     ,[](ParsedArgs pargs)->int { // return error code!
+        IN_CLASS_CHECK(true)
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
@@ -1192,9 +1228,33 @@ inline const std::vector<Command> commands = {
 
         return 0;
     }},
+    {"extend",{}, ArgParser()
+         .addArg("class",ARG_GET,{},-1,Arg::Priority::FORCE)
+    ,[](ParsedArgs pargs)->int { // return error code!
+        IN_CLASS_CHECK(true)
+        if(!pargs) {
+            Global::err_msg = pargs.error();
+            return 2;
+        }
+        std::string val;
+        if(pargs.has("value")) {
+            val = pargs("value");        
+        }
+
+        auto cls = Global::clstls::get_class(pargs("class"));
+
+        if(cls == nullptr) {
+            Global::err_msg = "No such class to extend: " + pargs("class");
+            return 2;
+        }
+
+        Global::cache::new_class_extends.push_back(*cls);
+        return 0;
+    }},
     {"import",{}, ArgParser()
         .addArg("file",ARG_GET,{},-1,Arg::Priority::FORCE)
     ,[](ParsedArgs pargs)->int { // return error code!
+        IN_CLASS_CHECK(false)
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;

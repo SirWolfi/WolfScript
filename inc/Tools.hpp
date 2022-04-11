@@ -9,6 +9,7 @@
 #include "InI++/Inipp.hpp"
 
 class Function;
+class Class;
 
 #define PRINT_VEC(vec) { std::cout << "["; for(auto i : vec) { std::cout << i << ","; } std::cout << "]\n"; }
 #define CATCH_OUTPUT(code) \
@@ -21,10 +22,13 @@ class Function;
                 return cath.str();                              \
             } ();                                               \
 
-#define NOT_IN_CLASS_CHECK                                          \
-    if(Global::in_class()) {                                        \
-        Global::err_msg = "Can't use this command inside a class!"; \
-        return 4;                                                   \
+#define IN_CLASS_CHECK(bl)                                              \
+    if(Global::in_class() == !bl) {                                     \
+        if(!bl)                                                         \
+            Global::err_msg = "Can't use this command inside a class!"; \
+        else                                                            \
+            Global::err_msg = "Can't use this command outside a class!";\
+        return 4;                                                       \
     }
 
 #ifdef _WIN32
@@ -59,7 +63,8 @@ namespace Tools {
         return ret;
     }
 
-    std::vector<Function> merge_functions(std::vector<Function> f1, std::vector<Function> f2,std::string& err_msg);
+    std::vector<Function> merge_functions(std::vector<Function> f1, std::vector<Function> f2,std::string& err_msg,bool lookfor_virtual = false);
+    std::vector<Class> merge_classes(std::vector<Class> f1, std::vector<Class> f2, std::string& err_msg);
 }
 
 

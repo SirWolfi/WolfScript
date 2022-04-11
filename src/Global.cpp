@@ -131,7 +131,7 @@ void Global::pop_scope() {
     }
 
     if(!class_instances.empty()) {
-        class_instances.pop();
+        Global::cache::class_instance_cache = class_instances.pop();
     }
 
     if(!functions.empty()) {
@@ -139,7 +139,13 @@ void Global::pop_scope() {
     }
 
     if(!classes.empty()) {
-        classes.pop();
+        Global::cache::new_classes = classes.pop();
+        for(size_t i = 0; i < Global::cache::new_classes.size(); ++i) {
+            if(Global::cache::new_classes[i].is_private) {
+                Global::cache::new_classes.erase(Global::cache::new_classes.begin()+i);
+                --i;
+            }
+        }
     }
 
     if(!lists.empty()) {
@@ -241,13 +247,16 @@ bool Global::clstls::is_member(std::string name, Class* cls) {
     return false;
 }
 
-bool Global::clstls::is_method(std::string name, Class* cls) {
-    if(cls == nullptr) { return false; }
+int Global::clstls::is_method(std::string name, Class* cls) {
+    if(cls == nullptr) { return 0; }
 
     for(auto i : cls->methods) {
         if(i.name == name) {
-            return true;
+            if(i.is_virtual) {
+                return 2;
+            }
+            return 1;
         }
     }
-    return false;
+    return 0;
 }

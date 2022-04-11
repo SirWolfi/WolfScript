@@ -530,13 +530,33 @@ int run_file(std::string pfile, bool main) {
     Global::current_file.pop();
     Global::current.pop();
 
-    if(!main && !Global::functions.empty()) {
-        std::string errm = "";
-        Global::functions.top() = Tools::merge_functions(Global::functions.top(),Global::cache::function_cache,errm);
+    if(!main) {
+        if (!Global::cache::function_cache.empty()) {
+            std::string errm = "";
+            Global::functions.top() = Tools::merge_functions(Global::functions.top(),Global::cache::function_cache,errm);
 
-        if(errm != "") {
-            Global::err_msg = errm;
-            return 3;
+            if(errm != "") {
+                Global::err_msg = errm;
+                return 3;
+            }
+        }
+        if (!Global::cache::new_classes.empty()) {
+            std::string errm = "";
+            Global::classes.top() = Tools::merge_classes(Global::classes.top(),Global::cache::new_classes,errm);
+
+            if(errm != "") {
+                Global::err_msg = errm;
+                return 3;
+            }
+        }
+        if (!Global::cache::class_instance_cache.empty()) {
+            std::string errm = "";
+            Global::class_instances.top() = Tools::merge_classes(Global::class_instances.top(),Global::cache::class_instance_cache,errm);
+
+            if(errm != "") {
+                Global::err_msg = errm;
+                return 3;
+            }
         }
     }
 

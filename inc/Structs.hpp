@@ -13,12 +13,15 @@ struct Function {
     std::string name;
     std::vector<std::string> params;
     std::string body;
+    bool is_virtual = false;
 };
 
 struct Class {
     std::string name;
     std::map<std::string,std::string> members;
     std::vector<Function> methods;
+    std::vector<Class> extends;
+    bool is_private = false;
 
     Function get_method(std::string name);
 
@@ -28,6 +31,7 @@ struct Class {
         name = cls.name;
         members = cls.members;
         methods = cls.methods;
+        extends = cls.extends;
     }
 };
 

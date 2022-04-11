@@ -45,6 +45,9 @@ namespace Global {
         inline std::map<std::string,std::string> variable_cache;
         inline std::vector<Function> new_defined_methods;
         inline std::map<std::string,std::string> new_defined_members;
+        inline std::vector<Class> new_class_extends;
+        inline std::vector<Class> new_classes;
+        inline std::vector<Class> class_instance_cache;
     } // namespace cache
 
     bool in_class();
@@ -82,9 +85,13 @@ namespace Global {
     
         bool is_class(std::string name);
     
+        // 0 = No
+        // 1 = Yes
+        // 2 = Yes, but virtual
+        int is_method(std::string name, Class* cls);
+
         bool is_member(std::string name, Class* cls);
 
-        bool is_method(std::string name, Class* cls);
     } // namespace clstls
 } // namespace Global
 

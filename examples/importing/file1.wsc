@@ -10,3 +10,8 @@ foo
 echo $x
 # doesn't work because not set in global-stack!
 echo $y
+# works!
+echo $B:c
+# Error! class "A" is private
+A D
+echo $D:c
