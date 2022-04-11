@@ -1234,6 +1234,90 @@ inline const std::vector<Command> commands = {
         }
         return 0;
     }},
+    {"erase",{}, ArgParser()
+        .addArg("list",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("index",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("-nstring",ARG_TAG,{"-ns"})
+        .addArg("-fstring",ARG_TAG,{"-fs"})
+    ,[](ParsedArgs pargs)->int { // return error code!
+    IN_CLASS_CHECK(false)    
+        if(!pargs) {
+            std::cout << "Error!\n";
+            Global::err_msg = pargs.error();
+            return 2;
+        }
+
+        List list;
+        if(List::is(pargs("list")) && !pargs["-fstring"]) {
+            list.from_string(pargs("list"));
+        }
+        else {
+            if(Global::is_list(pargs("list")) && !pargs["-fstring"]) {
+                list = Global::get_list(pargs("list"));
+            }
+            else if(!pargs["-nstring"] || pargs["-fstring"]) {
+                std::string str = pargs("list");
+                for(auto i : str) {
+                    list.elements.push_back(std::string(1,i));
+                }
+            }
+        }
+        int idx = 0;
+        try { idx = std::stoi(pargs("index")); }
+        catch(...) { 
+            Global::err_msg = "Invalid index!";
+            return 2;
+        }
+        if(idx >= list.elements.size()) {
+            Global::err_msg = "Invalid index!";
+            return 2;
+        }
+
+        list.elements.erase(list.elements.begin()+idx);
+        std::cout << list.to_string();
+
+        if(Global::in_subshell == 0) {
+            std::cout << "\n";
+        }
+        return 0;
+    }},
+    {"pop",{}, ArgParser()
+        .addArg("list",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("index",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("-nstring",ARG_TAG,{"-ns"})
+        .addArg("-fstring",ARG_TAG,{"-fs"})
+    ,[](ParsedArgs pargs)->int { // return error code!
+    IN_CLASS_CHECK(false)    
+        if(!pargs) {
+            std::cout << "Error!\n";
+            Global::err_msg = pargs.error();
+            return 2;
+        }
+
+        List list;
+        if(List::is(pargs("list")) && !pargs["-fstring"]) {
+            list.from_string(pargs("list"));
+        }
+        else {
+            if(Global::is_list(pargs("list")) && !pargs["-fstring"]) {
+                list = Global::get_list(pargs("list"));
+            }
+            else if(!pargs["-nstring"] || pargs["-fstring"]) {
+                std::string str = pargs("list");
+                for(auto i : str) {
+                    list.elements.push_back(std::string(1,i));
+                }
+            }
+        }
+
+        list.elements.pop_back();
+        std::cout << list.to_string();
+
+        if(Global::in_subshell == 0) {
+            std::cout << "\n";
+        }
+        return 0;
+    }},
     {"method",{}, ArgParser()
         .addArg("name",ARG_GET,{},-1,Arg::Priority::FORCE)
         .addArg("params",ARG_GET,{},-1,Arg::Priority::FORCE)

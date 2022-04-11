@@ -2,7 +2,7 @@ class A {
     member x 32
     
     method foo [stuff] {
-        set x !{expr ($x - $stuff)} -nn
+        set x !{expr ($x - $stuff)}
         echo The value is: $x
     }
 }
