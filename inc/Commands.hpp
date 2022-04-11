@@ -108,7 +108,10 @@ inline const std::vector<Command> commands = {
                     return 1;
                 }
 
-                std::cout << ifile.get(key,section) << "\n";
+                std::cout << ifile.get(key,section);
+                if(Global::in_subshell == 0) {
+                    std::cout << "\n";
+                }
                 return 0;
             }
             else {
@@ -188,12 +191,12 @@ inline const std::vector<Command> commands = {
          .addArg("name",ARG_GET,{},0,Arg::Priority::FORCE)
     ,[](ParsedArgs pargs)->int { // return error code!
     IN_CLASS_CHECK(false)    
-        if(!pargs && pargs != ArgParserErrors::NO_ARGS) {
+        if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
         }
         fs::path ph = Global::current.top();
-        ph.append(pargs("name"));
+        ph += SP + pargs("name");
         fs::create_directory(ph);
         return 0;
     }},
@@ -201,24 +204,18 @@ inline const std::vector<Command> commands = {
          .addArg("item",ARG_GET,{},0,Arg::Priority::FORCE)
     ,[](ParsedArgs pargs)->int { // return error code!
     IN_CLASS_CHECK(false)    
-        if(!pargs && pargs != ArgParserErrors::NO_ARGS) {
+        if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
         }
 
-        std::cout << "Really remove \"" << pargs("item") << "\" for EVER? [y\\N]:";
-        std::string inp;
-        std::getline(std::cin,inp);
-
-        if(inp == "y" || inp == "Y" || inp == "Yes" || inp == "yes") {
-            try {
-                fs::path ph = Global::current.top();
-                ph.append(pargs("item"));
-                fs::remove(ph);
-            }
-            catch(...) {
-                return 4;
-            }
+        try {
+            fs::path ph = Global::current.top();
+            ph += SP + pargs("item");
+            fs::remove(ph);
+        }
+        catch(...) {
+            return 4;
         }
         
         return 0;
@@ -389,12 +386,14 @@ inline const std::vector<Command> commands = {
 
         if(pargs.has("max")) {
             if(mcnt < cnt) {
-                Global::err_msg = "Not a valid range!";
-                return 2;
+                for(int i = cnt; i > mcnt; --i) {
+                    l.elements.push_back(std::to_string(i));
+                }
             }
-
-            for(size_t i = cnt; i < mcnt; ++i) {
-                l.elements.push_back(std::to_string(i));
+            else {
+                for(size_t i = cnt; i < mcnt; ++i) {
+                    l.elements.push_back(std::to_string(i));
+                }
             }
         }
         else {
@@ -465,7 +464,7 @@ inline const std::vector<Command> commands = {
         }
 
         if(!fs::is_directory(pargs("dir"))) {
-            Global::current.top().append(pargs("dir"));
+            Global::current.top() += SP + pargs("dir");
         }
         else {
             Global::err_msg = "Not a directory!\n";
@@ -477,7 +476,6 @@ inline const std::vector<Command> commands = {
     {"substr",{"spr"}, ArgParser()
         .addArg("from",ARG_GET,{},0,Arg::Priority::FORCE)
         .addArg("to",ARG_GET,{},1,Arg::Priority::FORCE)
-        .addArg("var",ARG_GET,{},2,Arg::Priority::FORCE)
         .setbin()
     ,[](ParsedArgs pargs)->int { // return error code!
     IN_CLASS_CHECK(false)    
@@ -499,7 +497,11 @@ inline const std::vector<Command> commands = {
               to = std::stoi(pargs("to"));     }
         catch(...) { return 2; }
 
-        Global::set_variable(pargs("var"),str.substr(from,to));
+        std::cout << str.substr(from,to);
+
+        if(Global::in_subshell == 0) {
+            std::cout << "\n";
+        }
 
         return 0;
     }},
@@ -635,6 +637,7 @@ inline const std::vector<Command> commands = {
     }},
     {"cat",{}, ArgParser()
         .addArg("file",ARG_GET,{},0,Arg::Priority::FORCE)
+        .addArg("-line",ARG_SET,{"-l"})
     ,[](ParsedArgs pargs)->int {
     IN_CLASS_CHECK(false)    
         if(!pargs) {
@@ -643,14 +646,104 @@ inline const std::vector<Command> commands = {
         }
 
         fs::path ph = Global::current.top();
-        ph.append(pargs("file"));
+        ph += SP + pargs("file");
         if(fs::exists(ph)) {
-            std::cout << Tools::read(ph) << "\n";
+            std::string rd = Tools::read(ph);
+
+            if(pargs.has("-line")) {
+                int line = 0;
+                try { line = std::stoi(pargs("-line"));}
+                catch(...) {
+                    Global::err_msg = "Invalid line number!";
+                    return 2;
+                }
+                line -= 1;
+                auto lines = IniHelper::tls::split_by(rd,{'\n','\0'},{},{},false,false,false);
+                if(lines.empty()) {
+                    ;
+                }
+                else if(line >= lines.size()) {
+                    std::cout << lines.back();
+                }
+                else {
+                    std::cout << lines[line];
+                }
+            }
+            else {
+                std::cout << rd;
+            }
+
+            if(Global::in_subshell == 0) {
+                std::cout << "\n";
+            }
         }
         else {
-            Global::err_msg = "No such file or directory!";
+            Global::err_msg = "No such file!";
             return 2;
         }
+
+        return 0;
+    }},
+    {"write",{}, ArgParser()
+        .addArg("file",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("what",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("-trunc",ARG_TAG,{"-tr","-t"})
+        .addArg("-line",ARG_SET,{"-l"})
+    ,[](ParsedArgs pargs)->int {
+    IN_CLASS_CHECK(false)    
+        if(!pargs) {
+            Global::err_msg = pargs.error();
+            return 2;
+        }
+
+        fs::path ph = Global::current.top();
+        ph += SP + pargs("file");
+        /*if(fs::exists(ph)) {*/
+            if(pargs["-trunc"]) {
+                std::ofstream op(ph,std::ios::trunc);
+                op.close();
+            }
+
+            if(pargs.has("-line")) {
+                std::string rd = Tools::read(ph);
+                int line = 0;
+                try { line = std::stoi(pargs("-line"));}
+                catch(...) {
+                    Global::err_msg = "Invalid line number!";
+                    return 2;
+                }
+
+                line -= 1;
+                auto lines = IniHelper::tls::split_by(rd,{'\n','\0'},{},{},false,false,false);
+                if(lines.empty()) {
+                    ;
+                }
+                else if(line >= lines.size()) {
+                    lines.back() = pargs("what");
+                }
+                else {
+                    lines[line] = pargs("what");
+                }
+
+                std::ofstream opt(ph,std::ios::trunc);
+                opt.close();
+
+                std::ofstream op(ph,std::ios::app);
+                for(auto i : lines) {
+                    op << i << "\n";
+                }
+                op.close();
+            }
+            else {
+                std::ofstream op(ph,std::ios::app);
+                op << pargs("what");
+                op.close();
+            }
+        /*}
+        else {
+            Global::err_msg = "No such file!";
+            return 2;
+        }*/
 
         return 0;
     }},

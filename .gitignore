@@ -5,3 +5,4 @@ helper
 .vscode
 wolf-script
 test.wsc
+examples/file_io

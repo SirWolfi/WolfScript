@@ -76,10 +76,14 @@ std::string Tools::read(std::string path) {
     }
     catch(std::exception& err) {
         ifile.close();
+        delete[] dummy;
+        dummy = nullptr;
         return "";
     }
     if (dummy == nullptr || strlen(dummy) == 0) {
         ifile.close();
+        delete[] dummy;
+        dummy = nullptr;
         return "";
     }
     ifile.close();
