@@ -111,18 +111,19 @@ Function Global::get_function(std::string name) {
 }
 
 void Global::push_scope(std::map<std::string,std::string> add_vars) {
-    ++Global::scope_deepness;
+    ++Global::scope_deepness.top();
     variables.push(add_vars);
     functions.push({});
     classes.push({});
     class_instances.push({});
     lists.push({});
     last_if_result.push(false);
+    instruction.push(0);
 }
 
 void Global::pop_scope() {
-    if(Global::scope_deepness != 0) {
-        --Global::scope_deepness;
+    if(Global::scope_deepness.top() != 0) {
+        --Global::scope_deepness.top();
     }
 
     if(!variables.empty()) {
@@ -148,10 +149,14 @@ void Global::pop_scope() {
     if(!last_if_result.empty()) {
         last_if_result.pop();
     }
+
+    if(!instruction.empty()) {
+        instruction.pop();
+    }
 }
 
 void Global::push_call_stack(std::string line) {
-    call_stack.push(std::to_string(Global::instruction) + " | \"" + line + "\"");
+    call_stack.push("(" + Global::current_file.top() + ") " + std::to_string(Global::instruction.top()) + " | \"" + line + "\"");
 }
 
 void Global::pop_call_stack() {

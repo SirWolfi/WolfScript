@@ -8,6 +8,8 @@
 
 #include "InI++/Inipp.hpp"
 
+class Function;
+
 #define PRINT_VEC(vec) { std::cout << "["; for(auto i : vec) { std::cout << i << ","; } std::cout << "]\n"; }
 #define CATCH_OUTPUT(code) \
             [&]()->std::string {                                \
@@ -24,6 +26,12 @@
         Global::err_msg = "Can't use this command inside a class!"; \
         return 4;                                                   \
     }
+
+#ifdef _WIN32
+# define SP "\\"
+#elif defined(__linux__)
+# define SP "/"
+#endif
 
 
 namespace Tools {
@@ -50,6 +58,8 @@ namespace Tools {
         }
         return ret;
     }
+
+    std::vector<Function> merge_functions(std::vector<Function> f1, std::vector<Function> f2,std::string& err_msg);
 }
 
 

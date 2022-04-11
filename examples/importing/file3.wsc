@@ -1,0 +1,8 @@
+echo $__MAIN__
+echo $__FILE__
+
+func foo [] {
+    echo bar!
+}
+
+set x 100 -g

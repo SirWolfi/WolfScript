@@ -1,0 +1,7 @@
+import file3
+
+echo ---
+echo $__MAIN__
+echo $__FILE__
+
+set y 32

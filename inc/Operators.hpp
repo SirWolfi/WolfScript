@@ -16,7 +16,13 @@ std::string get_type(std::string str);
 
 inline std::vector<char> opersnames = {
     '+',
-    '-'
+    '-',
+    '*',
+    '/',
+    '^',
+    '&',
+    '|',
+    '%'
 };
 
 inline std::vector<Operator> operators = {

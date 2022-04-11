@@ -11,37 +11,17 @@
 
 inline const std::vector<Command> commands = {
     {"help",{}, ArgParser()
-         .addArg("topic",ARG_GET,{"h"})
+
     ,[](ParsedArgs pargs)->int { // return error code!
-        
         if(!pargs && pargs != ArgParserErrors::NO_ARGS) {
             Global::err_msg = pargs.error();
             return 2;
         }
-        if(pargs.has("topic")) {
-            if(pargs("topic") == "help") {
-                std::cout << "Prints help\n";
-            }
-            else if(pargs("topic") == "inimod") {
-                std::cout << "Modify/get values in InI++ files!\n"
-                << "Usage:\n\n"
-                << " inimod set <file> <key> <section> <value>\n"
-                << " inimod get <file> <key> <section>\n";
-            }
-            else if(pargs("topic") == "exit") {
-                std::cout << "exits the shell\n";
-            }
-            else if(pargs("topic") == "echo") {
-                std::cout << "prints text!\n";
-            }
+        std::cout << "List of commands:\n";
+        for(auto i : commands) {
+            std::cout << " - " << i.name << "\n";
         }
-        else {
-            std::cout << "List of commands:\n";
-            for(auto i : commands) {
-                std::cout << " - " << i.name << "\n";
-            }
-            std::cout << "\nTry \"help <command>\" for more informations!\n";
-        }
+
         return 0;
     }},
     {"exit",{"q"}, ArgParser()
@@ -111,7 +91,7 @@ inline const std::vector<Command> commands = {
                 std::string key = pargs("set2");
                 std::string section;
                 if(pargs.has("set3"))
-                   section = pargs("set3");
+                    section = pargs("set3");
                 else
                     section = "Main";
 
@@ -198,7 +178,7 @@ inline const std::vector<Command> commands = {
         for(auto i : Global::variables.top()) {
             std::cout << i.first << " : " << i.second << "\n";
         }
-        std::cout << "Scope: " << Global::scope_deepness << "\n";
+        std::cout << "Scope: " << Global::scope_deepness.top() << "\n";
         return 0;
     }},
     {"dir",{}, ArgParser()
@@ -209,7 +189,7 @@ inline const std::vector<Command> commands = {
             Global::err_msg = pargs.error();
             return 2;
         }
-        fs::path ph = Global::current;
+        fs::path ph = Global::current.top();
         ph.append(pargs("name"));
         fs::create_directory(ph);
         return 0;
@@ -229,7 +209,7 @@ inline const std::vector<Command> commands = {
 
         if(inp == "y" || inp == "Y" || inp == "Yes" || inp == "yes") {
             try {
-                fs::path ph = Global::current;
+                fs::path ph = Global::current.top();
                 ph.append(pargs("item"));
                 fs::remove(ph);
             }
@@ -258,7 +238,7 @@ inline const std::vector<Command> commands = {
             Global::err_msg = pargs.error();
             return 2;
         }
-        for(auto& i : fs::directory_iterator(Global::current)) {
+        for(auto& i : fs::directory_iterator(Global::current.top())) {
             std::cout << i.path().filename();
             if(fs::is_directory(i)) {
                 std::cout << " \t \t(DIR)";
@@ -458,7 +438,7 @@ inline const std::vector<Command> commands = {
             Global::err_msg = pargs.error();
             return 2;
         }
-        std::cout << Global::current;
+        std::cout << Global::current.top();
         if(Global::in_subshell == 0) {
             std::cout << "\n";
         }
@@ -474,7 +454,7 @@ inline const std::vector<Command> commands = {
         }
 
         if(pargs("dir") == "..") {
-            Global::current = Global::current.parent_path();
+            Global::current.top() = Global::current.top().parent_path();
             return 0;
         }
         if(pargs("dir") == ".") {
@@ -482,9 +462,10 @@ inline const std::vector<Command> commands = {
         }
 
         if(!fs::is_directory(pargs("dir"))) {
-            Global::current.append(pargs("dir"));
+            Global::current.top().append(pargs("dir"));
         }
         else {
+            Global::err_msg = "Not a directory!\n";
             return 2;
         }
 
@@ -657,7 +638,7 @@ inline const std::vector<Command> commands = {
             return 2;
         }
 
-        fs::path ph = Global::current;
+        fs::path ph = Global::current.top();
         ph.append(pargs("file"));
         if(fs::exists(ph)) {
             std::cout << Tools::read(ph) << "\n";
@@ -673,6 +654,7 @@ inline const std::vector<Command> commands = {
         .setbin()
     ,[](ParsedArgs pargs)->int { // return error code!
          // comment
+         // Todo: make better!
         return Global::error_code;
     }},
     {"func",{}, ArgParser()
@@ -1209,6 +1191,20 @@ inline const std::vector<Command> commands = {
         Global::cache::new_defined_members[pargs("name")] = val;
 
         return 0;
+    }},
+    {"import",{}, ArgParser()
+        .addArg("file",ARG_GET,{},-1,Arg::Priority::FORCE)
+    ,[](ParsedArgs pargs)->int { // return error code!
+        if(!pargs) {
+            Global::err_msg = pargs.error();
+            return 2;
+        }
+
+        std::string file = pargs("file");
+        
+        Global::error_code = run_file(file,false);
+
+        return Global::error_code;
     }},
 };
 

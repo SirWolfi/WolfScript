@@ -15,7 +15,16 @@ std::string replace_vars(std::string str) {
                         tmp.erase(tmp.begin());
                     }
 
-                    if(Global::is_var(tmp)) {
+                    if(tmp == "__MAIN__") {
+                        ed += (Global::current_main_file.top() ? "true" : "false");
+                    }
+                    else if(tmp == "__FILE__") {
+                        ed += Global::current_file.top();
+                    }
+                    else if(tmp == "__INST__") {
+                        ed += std::to_string(Global::instruction.top());
+                    }
+                    else if(Global::is_var(tmp)) {
                         LOG("Is a variable! (" << tmp << ")")
                         ed += Global::get_variable(tmp);
                     }
@@ -46,7 +55,16 @@ std::string replace_vars(std::string str) {
                     tmp.erase(tmp.begin());
                 }
 
-                if(Global::is_var(tmp)) {
+                if(tmp == "__MAIN__") {
+                    ed += (Global::current_main_file.top() ? "true" : "false");
+                }
+                else if(tmp == "__FILE__") {
+                    ed += Global::current_file.top();
+                }
+                else if(tmp == "__INST__") {
+                    ed += std::to_string(Global::instruction.top());
+                }
+                else if(Global::is_var(tmp)) {
                     LOG("Is a variable! (" << tmp << ")")
                     ed += Global::get_variable(tmp);
                 }
@@ -79,7 +97,17 @@ std::string replace_vars(std::string str) {
         if(tmp[0] == '$') {
             tmp.erase(tmp.begin());
         }
-        if(Global::is_var(tmp)) {
+
+        if(tmp == "__MAIN__") {
+            ed += (Global::current_main_file.top() ? "true" : "false");
+        }
+        else if(tmp == "__FILE__") {
+            ed += Global::current_file.top();
+        }
+        else if(tmp == "__INST__") {
+            ed += std::to_string(Global::instruction.top());
+        }
+        else if(Global::is_var(tmp)) {
             LOG("Is a variable! (" << tmp << ")")
             ed += Global::get_variable(tmp);
         }
@@ -244,11 +272,13 @@ bool handle_bexpr(std::string expr, bool& failed) {
         }
         return false;
     }
+    failed = true;
+    return false;
 }
 
 int run_subshell(std::string sh) {
     ++Global::in_subshell;
-    fs::path cr_path = Global::current;
+    fs::path cr_path = Global::current.top();
     auto mp = Global::variables;
     auto funs = Global::functions;
 
@@ -259,7 +289,7 @@ int run_subshell(std::string sh) {
     auto parse = IniHelper::tls::split_by(sh,{'\n','\0'},{},{},true,true,false);
     int err = run(parse);
 
-    Global::current = cr_path;
+    Global::current.top() = cr_path;
     Global::variables = mp;
     Global::functions = funs;
     --Global::in_subshell;
@@ -355,12 +385,13 @@ void run_function(Function fun, std::vector<std::string> lex, std::map<std::stri
         Global::pop_call_stack();
 }
 
-int run(std::vector<std::string> lines, bool main, std::map<std::string,std::string> add) {
-    Global::push_scope(add);
+int run(std::vector<std::string> lines, bool main, std::map<std::string,std::string> add,bool new_scope) {
+    if(new_scope) {
+        Global::push_scope(add);
+    }
     for(size_t i = 0; i < lines.size(); ++i) {
-        if(main) {
-            Global::instruction = i+1;
-        }
+        Global::instruction.top() = i+1;
+
         Global::last_line = lines[i];
 
         if(Tools::is_empty(lines[i])) {
@@ -383,7 +414,7 @@ int run(std::vector<std::string> lines, bool main, std::map<std::string,std::str
                 LOG("cname:" << cname << "|call_on:" << call_on << "|failed:" << failed << "|cls_valid:" << (cls != nullptr) << "|is_method:" << Global::clstls::is_method(call_on,cls) )
 
                 if(failed || cls == nullptr || Global::clstls::is_member(call_on,cls) || !Global::clstls::is_method(call_on,cls)) {
-                    Global::pop_scope();
+                    if(new_scope) Global::pop_scope();
                     Global::err_msg = "Not a known command/function/class: \"" + name + "\"";
                     Global::error_code = 3;
                     return 3;
@@ -400,7 +431,7 @@ int run(std::vector<std::string> lines, bool main, std::map<std::string,std::str
             }
             else {
                 if(lex.size() != 1) {
-                    Global::pop_scope();
+                    if(new_scope) Global::pop_scope();
                     Global::err_msg = "Not a valid instance definition!";
                     Global::error_code = 2;
                     return 2;
@@ -440,14 +471,91 @@ int run(std::vector<std::string> lines, bool main, std::map<std::string,std::str
         }
         if(Global::pop_run_request) {
             --Global::pop_run_request;
-            Global::pop_scope();
+            if(new_scope) Global::pop_scope();
             return Global::error_code;
         }
         if(Global::loop_continue_request || Global::loop_end_request) {
-            Global::pop_scope();
+            if(new_scope) Global::pop_scope();
             return Global::error_code;
         }
     }
-    Global::pop_scope();
+    if(new_scope) Global::pop_scope();
     return Global::error_code;
+}
+
+int run_file(std::string pfile, bool main) {
+    if(!Global::current.empty()) {
+        Global::current.push(Global::current.top().parent_path().string() + SP + fs::path(pfile).remove_filename().string());
+    }   
+    else {
+        Global::current.push(Global::start_path + fs::path(pfile).remove_filename().string());
+    }
+
+    fs::path file = Global::current.top().string() + pfile;
+    if(!fs::exists(file) && !file.has_extension()) {
+        file += ".wsc";
+    }
+    if(!fs::exists(file)) {
+        if(!main) {
+            Global::err_msg = "Trying to import non existing file: " + file.string();
+            Global::error_code = 5;
+            Global::current.pop();
+            return 5;
+        }
+        else {
+            std::cout << "Unknown file: " << pfile << "\n";
+        }
+        Global::err_msg = "File doesn't exist: " + pfile;
+        Global::error_code = 5;
+        Global::current.pop();
+        return 5;
+    }
+
+    std::string src = Tools::read(file);
+    if(Tools::is_empty(src)) {
+        Global::error_code = 0;
+        return 0;
+    }
+    auto lines = IniHelper::tls::split_by(src,{'\n','\0'},{},{},true,true,false);
+
+    LOG("New current path:" << Global::current.top())
+    Global::scope_deepness.push(0);
+    Global::current_main_file.push(main);
+    Global::current_file.push(file.filename());
+
+    int ret = run(lines,main);
+
+    Global::scope_deepness.pop();
+    Global::current_main_file.pop();
+    Global::current_file.pop();
+    Global::current.pop();
+
+    if(!main && !Global::functions.empty()) {
+        std::string errm = "";
+        Global::functions.top() = Tools::merge_functions(Global::functions.top(),Global::cache::function_cache,errm);
+
+        if(errm != "") {
+            Global::err_msg = errm;
+            return 3;
+        }
+    }
+
+    if(ret != 0) {
+        int err_size = std::to_string(Global::instruction.top()).size() + Global::last_line.size() + 7;
+
+        std::cout << "Exited with error code: " << ret << "\n";
+        std::cout << "Error message: " << Global::err_msg << "\n";
+        std::cout << "Error occured in instruction " << Global::instruction.top() << "\n";
+        std::cout << "\t  |" << std::string(err_size,'-') << "|\n";
+        std::cout << "\t> | " << Global::instruction.top() << " - \"" << Global::last_line << "\" | <\n";
+        std::cout << "\t  |" << std::string(err_size,'-') << "|\n";
+        std::cout << "\nCall Stack:\n";
+        auto v = Global::call_stack;
+        while(!v.empty()) {
+            auto cur = v.top();
+            std::cout << " -> in " << cur << "\n";
+            v.pop();
+        }
+    }
+    return ret;
 }

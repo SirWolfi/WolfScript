@@ -1,0 +1,12 @@
+import file2
+
+echo --- 
+echo $__MAIN__
+echo $__FILE__
+
+# works!
+foo
+# works!
+echo $x
+# doesn't work because not set in global-stack!
+echo $y

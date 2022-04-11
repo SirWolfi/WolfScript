@@ -1,4 +1,5 @@
 #include "../inc/Tools.hpp"
+#include "../inc/Structs.hpp"
 
 bool Tools::is_empty(std::string str) {
     if(str == "") {
@@ -109,4 +110,19 @@ void Tools::merge_maps(std::map<std::string,std::string> prio1, std::map<std::st
             prio2[i.first] = i.second;
         }
     }
+}
+
+std::vector<Function> Tools::merge_functions(std::vector<Function> f1, std::vector<Function> f2, std::string& err_msg) {
+    auto ret = f1;
+    for(auto i : f2) {
+        for(auto j : ret) {
+            if(i.name == j.name) {
+                err_msg = "Double definition of function: " + i.name;
+                return std::vector<Function>();
+            }
+        }
+        ret.push_back(i);
+    }
+    err_msg = "";
+    return ret;
 }

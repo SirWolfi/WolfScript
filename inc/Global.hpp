@@ -10,10 +10,12 @@
 namespace fs = std::filesystem;
 
 namespace Global {
+    inline std::string version;
     inline std::string last_line = "";
-    inline size_t instruction = 0;
+    inline AccessStack<size_t> instruction;
 
-    inline size_t scope_deepness = 0;
+    inline std::string start_path;
+    inline AccessStack<size_t> scope_deepness;
     inline int error_code = 0;
     inline bool exit_request = false;
     inline int disable_global_setting = 0;
@@ -24,7 +26,7 @@ namespace Global {
     inline AccessStack<std::map<std::string,List>> lists;
     inline std::map<std::string,List> global_lists;
     inline std::map<std::string,std::string> global_vars;
-    inline fs::path current;
+    inline AccessStack<fs::path> current;
     inline AccessStack<std::vector<Function>> functions;
     inline AccessStack<std::vector<Class>> classes;
     inline AccessStack<Class*> current_class;
@@ -35,13 +37,15 @@ namespace Global {
     inline int in_loop = 0;
     inline int in_class_i = 0;
     inline int in_subshell = 0;
+    inline AccessStack<int> current_main_file;
+    inline AccessStack<std::string> current_file;
 
     namespace cache {
         inline std::vector<Function> function_cache;
         inline std::map<std::string,std::string> variable_cache;
         inline std::vector<Function> new_defined_methods;
         inline std::map<std::string,std::string> new_defined_members;
-    }
+    } // namespace cache
 
     bool in_class();
 
