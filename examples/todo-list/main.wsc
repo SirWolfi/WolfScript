@@ -1,0 +1,17 @@
+import input
+import nodes
+
+func main [] {
+    while ($running) {
+        node_handler:print_nodes
+        set input !{get_input}
+        catch err {
+            handle_input "$input"
+        }
+        clear
+    }
+}
+
+if ($__MAIN__) {
+    main
+}

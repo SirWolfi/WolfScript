@@ -1,0 +1,34 @@
+import nodes
+
+set -g running true
+
+func get_input [] {
+    getline inp "Your action please: "
+    echo "$inp"
+}
+
+func handle_input [input] {
+    if ("$input" = "quit") {
+        set -g running false
+    }
+    elif ("$input" = "remove") {
+        getline choice "Which one:"
+        node_handler:remove_node "$choice"
+    }
+    elif ("$input" = "add") {
+        getline choice "Please enter a name:"
+        node_handler:add_node "$choice"
+    }
+    elif ("$input" = "done") {
+        getline choice "Which one:"
+        node_handler:set_node !{node_handler:name_to_index "$choice"} true
+    }
+    elif ("$input" = "undone") {
+        getline choice "Which one:"
+        node_handler:set_node !{node_handler:name_to_index "$choice"} false
+    }
+    else {
+        echo Invalid command, please try again!
+        sleep 1000
+    }
+}

@@ -125,6 +125,7 @@ inline const std::vector<Command> commands = {
     }},
     {"echo",{}, ArgParser()
          .addArg("-nn",ARG_TAG,{})
+         .addArg("-nc",ARG_TAG,{})
          .setbin()
     ,[](ParsedArgs pargs)->int { // return error code!
     IN_CLASS_CHECK(false)
@@ -139,10 +140,12 @@ inline const std::vector<Command> commands = {
                 o += i + " ";
             }
             o.pop_back();
-            std::cout << o;
+            if(!pargs["-nc"]) std::cout << o;
+            else Global::uncatch << o << "\n";
         }
-        if(!pargs["-nn"] && Global::in_subshell == 0)
-            std::cout << "\n";
+        if(!pargs["-nn"] && Global::in_subshell == 0) {
+            if(!pargs["-nc"]) std::cout << "\n";
+        }
         return 0;
     }},
     {"set",{}, ArgParser()
@@ -424,7 +427,7 @@ inline const std::vector<Command> commands = {
             o += i + " ";
         }
         o.pop_back();
-        std::cout << o;
+        Global::uncatch << o;
         std::string inp = "";
         std::getline(std::cin,inp);
         LOG("got input, write it to " << pargs("var") << " (\"" << inp << "\")")
@@ -559,7 +562,7 @@ inline const std::vector<Command> commands = {
 
         com.pop_back();
         com.erase(com.begin());
-        auto coms = IniHelper::tls::split_by(replace_vars(com), {'\n','\0'}, {}, {},true,true,false);
+        auto coms = IniHelper::tls::split_by(com, {'\n','\0'}, {}, {},true,true,false);
 
         bool failed = false;
         bool check = handle_bexpr(replace_vars(expr),failed);
@@ -593,7 +596,7 @@ inline const std::vector<Command> commands = {
 
         com.pop_back();
         com.erase(com.begin());
-        auto coms = IniHelper::tls::split_by(replace_vars(com), {'\n','\0'}, {}, {},true,true,false);
+        auto coms = IniHelper::tls::split_by(com, {'\n','\0'}, {}, {},true,true,false);
 
         if(!Global::last_if_result.top()) {
             Global::last_if_result.top() = true;
@@ -753,7 +756,7 @@ inline const std::vector<Command> commands = {
          // comment
          // Todo: make better!
         return Global::error_code;
-    }},
+    },false},
     {"func",{}, ArgParser()
         .addArg("name",ARG_GET,{},0,Arg::Priority::FORCE)
         .addArg("params",ARG_GET,{},1,Arg::Priority::FORCE)
@@ -784,7 +787,7 @@ inline const std::vector<Command> commands = {
         Function nfun;
         nfun.name = name;
         nfun.body = com;
-        
+        nfun.from_file = Global::current_file.top();
         params.pop_back();
         params.erase(params.begin());
 
@@ -921,6 +924,9 @@ inline const std::vector<Command> commands = {
 
         Class new_class;
         new_class.is_private = pargs["-private"];
+        if(pargs["-private"]) {
+            new_class.bind_to_file = Global::current.top().string() + Global::current_file.top();
+        }
         new_class.name = pargs("name");
         std::string body = pargs("body");
 
@@ -980,6 +986,10 @@ inline const std::vector<Command> commands = {
         Global::cache::new_defined_members.clear();
         Global::cache::new_class_extends.clear();
         Global::classes.top().push_back(new_class);
+
+        for(auto& i : Global::classes.top().back().methods) {
+            i.owner = &Global::classes.top().back();
+        }
 
         return 0;
     },false},
@@ -1355,7 +1365,8 @@ inline const std::vector<Command> commands = {
         nfun.name = name;
         nfun.body = com;
         nfun.is_virtual = pargs["-virtual"];
-
+        nfun.owner = Global::current_class.top();
+        nfun.from_file = Global::current_file.top();
         params.pop_back();
         params.erase(params.begin());
 
@@ -1430,6 +1441,7 @@ inline const std::vector<Command> commands = {
     }},
     {"import",{}, ArgParser()
         .addArg("file",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("-allow-twice",ARG_GET,{"-all-tw","-at"})
     ,[](ParsedArgs pargs)->int { // return error code!
         IN_CLASS_CHECK(false)
         if(!pargs) {
@@ -1439,9 +1451,82 @@ inline const std::vector<Command> commands = {
 
         std::string file = pargs("file");
         
-        Global::error_code = run_file(file,false);
+        Global::error_code = run_file(file,false,pargs["-allow-twice"]);
 
         return Global::error_code;
+    }},
+    {"return",{}, ArgParser()
+        .addArg("deepness",ARG_GET,{})
+    ,[](ParsedArgs pargs)->int { // return error code!
+    IN_CLASS_CHECK(false)    
+        if(!pargs && pargs != ArgParserErrors::NO_ARGS) {
+            Global::err_msg = pargs.error();
+            return 2;
+        }
+        int num = 1;
+        if(pargs.has("deepness")) {
+            try { num = std::stoi(pargs("deepness"));}
+            catch(...) {
+                Global::err_msg = "Not a valid number!";
+                Global::error_code = 2;
+                return 2;
+            }
+        }
+
+        Global::pop_run_request += num;
+
+        return 0;
+    }},
+    {"catch",{}, ArgParser()
+        .addArg("var",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("body",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("-new-scope",ARG_TAG,{"-ns"})
+    ,[](ParsedArgs pargs)->int { // return error code!
+    IN_CLASS_CHECK(false)    
+        if(!pargs) {
+            Global::err_msg = pargs.error();
+            return 2;
+        }
+
+        std::string var = pargs("var");
+        std::string body = pargs("body");
+
+        if(!Tools::br_check(body,'{','}')) {
+            Global::err_msg = "Brace missmatch!";
+            return 2;
+        }
+        body.pop_back();
+        body.erase(body.begin());
+
+        auto r = IniHelper::tls::split_by(body,{'\n','\0'},{},{},true,false,false);
+
+        int err = run(r,false,{},pargs["-new-scope"]);
+
+        Global::set_variable(var,std::to_string(err));
+
+        return 0;
+    }},
+    {"throw",{}, ArgParser()
+        .addArg("code",ARG_GET,{},-1,Arg::Priority::FORCE)
+    ,[](ParsedArgs pargs)->int { // return error code!
+    IN_CLASS_CHECK(false)    
+        if(!pargs) {
+            Global::err_msg = pargs.error();
+            return 2;
+        }
+
+        int num = 1;
+        try { num = std::stoi(pargs("code"));}
+        catch(...) {
+            Global::err_msg = "Not a valid number!";
+            Global::error_code = 2;
+            return 2;
+        }
+
+        Global::err_msg = "Custom Exception!";
+        Global::error_code = num;
+
+        return num;
     }},
 };
 

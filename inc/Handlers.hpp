@@ -26,6 +26,6 @@ size_t find(std::string name, bool& failed, bool& function);
 
 void run_function(Function fun, std::vector<std::string> lex, std::map<std::string,std::string> add = {});
 
-int run_file(std::string file, bool main = false);
+int run_file(std::string file, bool main = false, bool allow_twice = false);
 
 #endif // ifndef HANDLERS_HPP

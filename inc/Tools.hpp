@@ -63,6 +63,8 @@ namespace Tools {
         return ret;
     }
 
+    std::string until_newline(std::string);
+
     std::vector<Function> merge_functions(std::vector<Function> f1, std::vector<Function> f2,std::string& err_msg,bool lookfor_virtual = false);
     std::vector<Class> merge_classes(std::vector<Class> f1, std::vector<Class> f2, std::string& err_msg);
 }

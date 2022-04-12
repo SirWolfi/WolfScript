@@ -220,7 +220,7 @@ ParsedArgs ArgParser::parse(std::vector<std::string> args) {
         }
     }
 
-    
+    LOG("returned successfully!")
     return ParsedArgs(tmpa,ArgParserErrors::OK,"",bin);
 }
 

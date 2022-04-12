@@ -13,7 +13,10 @@ struct Function {
     std::string name;
     std::vector<std::string> params;
     std::string body;
+    std::string from_file;
     bool is_virtual = false;
+
+    Class* owner = nullptr;
 };
 
 struct Class {
@@ -22,6 +25,8 @@ struct Class {
     std::vector<Function> methods;
     std::vector<Class> extends;
     bool is_private = false;
+    std::string bind_to_file = "";
+
 
     Function get_method(std::string name);
 

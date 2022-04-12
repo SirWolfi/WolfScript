@@ -2,8 +2,7 @@
 helper
 *.inipp
 *.bash
+test*.wsc
 .vscode
 wolf-script
-test.wsc
 examples/file_io
-examples/todo-list

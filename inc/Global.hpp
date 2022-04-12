@@ -14,6 +14,8 @@ namespace Global {
     inline std::string last_line = "";
     inline AccessStack<size_t> instruction;
 
+    inline std::ostream uncatch(std::cout.rdbuf());
+
     inline std::string start_path;
     inline AccessStack<size_t> scope_deepness;
     inline int error_code = 0;
@@ -37,8 +39,11 @@ namespace Global {
     inline int in_loop = 0;
     inline int in_class_i = 0;
     inline int in_subshell = 0;
+    inline int in_function = 0;
     inline AccessStack<int> current_main_file;
     inline AccessStack<std::string> current_file;
+    inline AccessStack<Class*> current_owner;
+    inline std::vector<fs::path> imported_files;
 
     namespace cache {
         inline std::vector<Function> function_cache;

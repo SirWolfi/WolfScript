@@ -1,6 +1,21 @@
 #include "../inc/Handlers.hpp"
 #include "../inc/Commands.hpp"
 
+void replace_sys_vars(std::string var, std::string& ed) {
+    if(var == "__MAIN__") {
+        ed += (Global::current_main_file.top() ? "true" : "false");
+    }
+    else if(var == "__FILE__") {
+        ed += Global::current_file.top();
+    }
+    else if(var == "__INST__") {
+        ed += std::to_string(Global::instruction.top());
+    }
+    else if(var == "__SCOPE__") {
+        ed += std::to_string(Global::scope_deepness.top());
+    }
+}
+
 std::string replace_vars(std::string str) {
     LOG("replacing vars in scope: " << str)
 
@@ -15,16 +30,9 @@ std::string replace_vars(std::string str) {
                         tmp.erase(tmp.begin());
                     }
 
-                    if(tmp == "__MAIN__") {
-                        ed += (Global::current_main_file.top() ? "true" : "false");
-                    }
-                    else if(tmp == "__FILE__") {
-                        ed += Global::current_file.top();
-                    }
-                    else if(tmp == "__INST__") {
-                        ed += std::to_string(Global::instruction.top());
-                    }
-                    else if(Global::is_var(tmp)) {
+                    replace_sys_vars(tmp,ed);
+
+                    if(Global::is_var(tmp)) {
                         LOG("Is a variable! (" << tmp << ")")
                         ed += Global::get_variable(tmp);
                     }
@@ -55,16 +63,9 @@ std::string replace_vars(std::string str) {
                     tmp.erase(tmp.begin());
                 }
 
-                if(tmp == "__MAIN__") {
-                    ed += (Global::current_main_file.top() ? "true" : "false");
-                }
-                else if(tmp == "__FILE__") {
-                    ed += Global::current_file.top();
-                }
-                else if(tmp == "__INST__") {
-                    ed += std::to_string(Global::instruction.top());
-                }
-                else if(Global::is_var(tmp)) {
+                replace_sys_vars(tmp,ed);
+                
+                if(Global::is_var(tmp)) {
                     LOG("Is a variable! (" << tmp << ")")
                     ed += Global::get_variable(tmp);
                 }
@@ -98,16 +99,8 @@ std::string replace_vars(std::string str) {
             tmp.erase(tmp.begin());
         }
 
-        if(tmp == "__MAIN__") {
-            ed += (Global::current_main_file.top() ? "true" : "false");
-        }
-        else if(tmp == "__FILE__") {
-            ed += Global::current_file.top();
-        }
-        else if(tmp == "__INST__") {
-            ed += std::to_string(Global::instruction.top());
-        }
-        else if(Global::is_var(tmp)) {
+        replace_sys_vars(tmp,ed);
+        if(Global::is_var(tmp)) {
             LOG("Is a variable! (" << tmp << ")")
             ed += Global::get_variable(tmp);
         }
@@ -133,7 +126,7 @@ std::string replace_vars(std::string str) {
 
 std::vector<std::string> replace_vars(std::vector<std::string> vec) {
     for(size_t i = 0; i < vec.size(); ++i) {
-
+        // TODO: make this better!
         while(!vec[i].empty() && Tools::is_empty(std::string(1,vec[i].front()))) {
             vec[i].erase(vec[i].begin());
         }
@@ -201,8 +194,9 @@ bool handle_bexpr(std::string expr, bool& failed) {
     auto exprv = IniHelper::tls::split_by(expr, {' ','\t'}, {}, {'=','!','>','<'},true,true,true);
 
     if(exprv.size() == 1) {
+        auto check = replace_vars(expr);
         failed = false;
-        return expr == "true" || expr == "TRUE" || expr == "1" || expr == "True";
+        return check == "true" || check == "TRUE" || check == "1" || check == "True";
     }
 
     if(exprv.size() != 3) {
@@ -354,22 +348,31 @@ size_t find(std::string name, bool& failed, bool& function) {
 }
 
 void run_function(Function fun, std::vector<std::string> lex, std::map<std::string,std::string> add) {
+    LOG("calling run_function() ...")
     if(fun.name.back() != '~') {
+        LOG("replacing `lex`... (Size:" << lex.size() << ")")
         lex = replace_vars(lex);
         lex = check_subshell(lex);
+        LOG("New lex size:" << lex.size())
     }
             
     if(lex.size() != fun.params.size()) {
         Global::err_msg = "To many/few params for function call!";
-        Global::pop_scope();
+        // Global::pop_scope();
         Global::error_code = 3;
+        return;
     }
-
+    
+    LOG("adding params... (size: " << fun.params.size() << "|" << lex.size() <<")")
     std::map<std::string,std::string> mp = add;
     for(size_t i = 0; i < fun.params.size(); ++i) {
-        mp[fun.params[i]] = replace_vars(lex[i]);
+        LOG("(" << i << ") " << fun.params[i] << " is set to: " << lex[i])
+        mp[fun.params[i]] = replace_vars(check_subshell(lex[i]));
     }
 
+    Global::current_owner.push(fun.owner);
+
+    LOG("lexing body...")
     std::vector<std::string> r;
     if(fun.name.back() != '\'') {
         r = IniHelper::tls::split_by(fun.body,{'\n','\0'},{},{},true,true,false);
@@ -379,8 +382,13 @@ void run_function(Function fun, std::vector<std::string> lex, std::map<std::stri
     }
     LOG("run process...")
     Global::push_call_stack(fun.name);
-    Global::error_code = run(r,false,mp);
+    ++Global::in_function;
+    Global::current_file.push(fun.from_file);
+    Global::error_code = run(r,false,mp,true);
+    Global::current_file.pop();
+    --Global::in_function;
     Global::set_global_variable("?",std::to_string(Global::error_code));
+    Global::current_owner.pop();
     if(Global::error_code == 0)
         Global::pop_call_stack();
 }
@@ -389,10 +397,12 @@ int run(std::vector<std::string> lines, bool main, std::map<std::string,std::str
     if(new_scope) {
         Global::push_scope(add);
     }
+
     for(size_t i = 0; i < lines.size(); ++i) {
         Global::instruction.top() = i+1;
 
         Global::last_line = lines[i];
+        LOG("Running line: " << lines[i] << "\n")
 
         if(Tools::is_empty(lines[i])) {
             continue;
@@ -412,17 +422,33 @@ int run(std::vector<std::string> lines, bool main, std::map<std::string,std::str
                 auto [cname, call_on, failed] = Global::clstls::extract_class(name);
                 cls = Global::clstls::get_class_instance(cname);
                 LOG("cname:" << cname << "|call_on:" << call_on << "|failed:" << failed << "|cls_valid:" << (cls != nullptr) << "|is_method:" << Global::clstls::is_method(call_on,cls) )
-
                 if(failed || cls == nullptr || Global::clstls::is_member(call_on,cls) || !Global::clstls::is_method(call_on,cls)) {
-                    if(new_scope) Global::pop_scope();
-                    Global::err_msg = "Not a known command/function/class: \"" + name + "\"";
-                    Global::error_code = 3;
-                    return 3;
+                    LOG("Failed");
+                    if(!Global::current_owner.empty() && Global::current_owner.top() != nullptr && Global::clstls::is_method(name,Global::current_owner.top())) {
+                        Function fun = Global::current_owner.top()->get_method(name);
+
+                        run_function(fun,lex,Global::current_owner.top()->members);
+
+                        if(Global::error_code != 0) {
+                            return Global::error_code;
+                        }
+                        auto vars = Global::cache::variable_cache;
+                        Tools::merge_maps(Tools::get_vals(Tools::keys(Global::current_owner.top()->members),vars),Global::current_owner.top()->members);
+                    }
+                    else {
+                        if(new_scope) Global::pop_scope();
+                        Global::err_msg = "Not a known command/function/class: \"" + name + "\"";
+                        Global::error_code = 3;
+                        return 3;
+                    }
                 }
                 else {
                     Function fun = cls->get_method(call_on);
 
                     run_function(fun,lex,cls->members);
+                    if(Global::error_code != 0) {
+                        return Global::error_code;
+                    }
                     LOG("cls->members.size() = " << cls->members.size())
 
                     auto vars = Global::cache::variable_cache;
@@ -465,6 +491,9 @@ int run(std::vector<std::string> lines, bool main, std::map<std::string,std::str
         else {
             Function fun = Global::get_function(name);
             run_function(fun,lex);
+            if(Global::error_code != 0) {
+                return Global::error_code;
+            }
         }
         if(Global::exit_request) {
             std::exit(0);
@@ -483,7 +512,7 @@ int run(std::vector<std::string> lines, bool main, std::map<std::string,std::str
     return Global::error_code;
 }
 
-int run_file(std::string pfile, bool main) {
+int run_file(std::string pfile, bool main, bool allow_twice) {
     if(!Global::current.empty()) {
         Global::current.push(Global::current.top().parent_path().string() + SP + fs::path(pfile).remove_filename().string());
     }   
@@ -492,12 +521,18 @@ int run_file(std::string pfile, bool main) {
     }
 
     fs::path file = Global::current.top().string() + pfile;
+
     if(!fs::exists(file) && !file.has_extension()) {
         file += ".wsc";
     }
+
+    if(!allow_twice && IniHelper::tls::isIn(file,Global::imported_files)) {
+        return 0; // to not run something twice!
+    }
+
     if(!fs::exists(file)) {
         if(!main) {
-            Global::err_msg = "Trying to import non existing file: " + file.string();
+            Global::err_msg = "Trying to import non existing file: " + pfile;
             Global::error_code = 5;
             Global::current.pop();
             return 5;
@@ -523,7 +558,7 @@ int run_file(std::string pfile, bool main) {
     Global::current_main_file.push(main);
     Global::current_file.push(file.filename());
 
-    int ret = run(lines,main);
+    int ret = run(lines,main,{},main);
 
     Global::scope_deepness.pop();
     Global::current_main_file.pop();
@@ -531,7 +566,7 @@ int run_file(std::string pfile, bool main) {
     Global::current.pop();
 
     if(!main) {
-        if (!Global::cache::function_cache.empty()) {
+        /*if (!Global::cache::function_cache.empty()) {
             std::string errm = "";
             Global::functions.top() = Tools::merge_functions(Global::functions.top(),Global::cache::function_cache,errm);
 
@@ -557,17 +592,19 @@ int run_file(std::string pfile, bool main) {
                 Global::err_msg = errm;
                 return 3;
             }
-        }
+        }*/
+        Global::imported_files.push_back(file);
     }
 
     if(ret != 0) {
-        int err_size = std::to_string(Global::instruction.top()).size() + Global::last_line.size() + 7;
+        std::string lline = Tools::until_newline(Global::last_line);
+        int err_size = std::to_string(Global::instruction.top()).size() + lline.size() + 7;
 
         std::cout << "Exited with error code: " << ret << "\n";
         std::cout << "Error message: " << Global::err_msg << "\n";
         std::cout << "Error occured in instruction " << Global::instruction.top() << "\n";
         std::cout << "\t  |" << std::string(err_size,'-') << "|\n";
-        std::cout << "\t> | " << Global::instruction.top() << " - \"" << Global::last_line << "\" | <\n";
+        std::cout << "\t> | " << Global::instruction.top() << " - \"" << lline << "\" | <\n";
         std::cout << "\t  |" << std::string(err_size,'-') << "|\n";
         std::cout << "\nCall Stack:\n";
         auto v = Global::call_stack;

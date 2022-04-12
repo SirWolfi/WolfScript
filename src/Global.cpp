@@ -34,10 +34,10 @@ void Global::set_variable(std::string name, std::string val, bool no_new) {
 }
 
 void Global::set_global_variable(std::string name, std::string val, bool hard) {
-    if(hard && global_vars.count(name) == 0) {
+    if(!hard && global_vars.count(name) == 0) {
         global_vars[name] = val;
     }
-    else if(!hard) {
+    else if(hard) {
         global_vars[name] = val;
     }
 }
@@ -60,6 +60,7 @@ bool Global::is_list(std::string list) {
 }
 
 bool Global::is_var(std::string var) {
+    LOG("checking if " << var << " is a variable...")
     if(var != "" && var.front() == '$') {
         var.erase(var.begin());
     }
@@ -67,14 +68,17 @@ bool Global::is_var(std::string var) {
     while(!tmpv.empty()) {
         auto cur = tmpv.top();
         if(cur.count(var) != 0) {
+            LOG("Is in normal scope...")
             return true;
         }
         tmpv.pop();
     }
 
     if(global_vars.count(var) != 0) {
+        LOG("Is in global scope...")
         return true;
     }
+    LOG("Is not!")
     return false;
 }
 
@@ -111,6 +115,7 @@ Function Global::get_function(std::string name) {
 }
 
 void Global::push_scope(std::map<std::string,std::string> add_vars) {
+    LOG("Pushing scope...(" << Global::scope_deepness.top() << ")")
     ++Global::scope_deepness.top();
     variables.push(add_vars);
     functions.push({});
@@ -122,6 +127,7 @@ void Global::push_scope(std::map<std::string,std::string> add_vars) {
 }
 
 void Global::pop_scope() {
+    LOG("Poping scope... (" << Global::scope_deepness.top() << ")")
     if(Global::scope_deepness.top() != 0) {
         --Global::scope_deepness.top();
     }
@@ -204,6 +210,7 @@ Class* Global::clstls::get_class(std::string name) {
     for(auto& i : classes.data()) {
         for(auto& j : i) {
             if(j.name == name) {
+                if(!j.is_private || j.bind_to_file == Global::current.top().string() + Global::current_file.top())
                 return &j;
             }
         }
@@ -217,12 +224,15 @@ Class* Global::clstls::get_class_instance(std::string name) {
     }
 
     for(auto& i : class_instances.data()) {
+        LOG("i.size() = " << i.size())
         for(auto& j : i) {
+            LOG("Checking for:" << j.name << " == " << name)
             if(j.name == name) {
                 return &j;
             }
         }
     }
+    LOG("Failed by finding class instance:" << name)
     return nullptr;
 }
 
@@ -249,8 +259,9 @@ bool Global::clstls::is_member(std::string name, Class* cls) {
 
 int Global::clstls::is_method(std::string name, Class* cls) {
     if(cls == nullptr) { return 0; }
-
+    LOG("cls's method count:" << cls->methods.size())
     for(auto i : cls->methods) {
+        LOG("checking if " << name << " is a method (" << i.name << ")")
         if(i.name == name) {
             if(i.is_virtual) {
                 return 2;

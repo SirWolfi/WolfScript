@@ -116,6 +116,17 @@ void Tools::merge_maps(std::map<std::string,std::string> prio1, std::map<std::st
     }
 }
 
+std::string Tools::until_newline(std::string str) {
+    std::string ret;
+    for(auto i : str) {
+        if(i == '\n') {
+            break;
+        }
+        ret += i;
+    }
+    return ret;
+}
+
 std::vector<Function> Tools::merge_functions(std::vector<Function> f1, std::vector<Function> f2, std::string& err_msg, bool lookfor_virtual) {
     auto ret = f1;
     for(auto i : f2) {

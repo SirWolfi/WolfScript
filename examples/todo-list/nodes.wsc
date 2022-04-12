@@ -1,0 +1,51 @@
+list nodes [] -g
+list done [] -g
+
+class NodeHandler {
+    method print_node [index] {
+        echo !{take $index nodes} | !{take $index done}
+    }
+
+    method print_nodes [] {
+        for i in !{range !{length nodes}} {
+            echo !{take $i nodes} | !{take $i done}
+        }
+    }
+
+    method set_node [index,state] {
+        list -g done !{put done "$index" "$state" -ns}
+    }
+
+    method add_node [name] {
+        list -g nodes !{push nodes "$name" -ns}
+        list -g done !{push done false -ns}
+    }
+    
+    method name_to_index [name] {
+        set nfound true
+        set idx 0
+        for i in nodes {
+            if ("$i" = "$name") {
+                echo $idx
+                set nfound -nn false
+                break
+            }
+            set -nn idx !{expr ($idx + 1)}
+        }
+        if ($nfound) {
+            echo -1
+        }
+    }
+
+    method remove_node [name] {
+        set in !{name_to_index "$name"}
+        if ("$in" = -1) {
+            return 2
+        }
+        list -g nodes !{erase nodes "$in" -ns}
+        list -g done !{erase done "$in" -ns}
+    }
+} -private
+
+# Kind-of singelton
+NodeHandler node_handler
