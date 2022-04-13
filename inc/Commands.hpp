@@ -153,6 +153,7 @@ inline const std::vector<Command> commands = {
          .addArg("value",ARG_GET,{},-1,Arg::Priority::OPTIONAL)
          .addArg("-global",ARG_TAG,{"-g"})
          .addArg("-no-new",ARG_TAG,{"-nn"})
+         .addArg("-list",ARG_TAG,{"-l"})
     ,[](ParsedArgs pargs)->int { // return error code!
     IN_CLASS_CHECK(false)    
         if(!pargs) {
@@ -161,7 +162,26 @@ inline const std::vector<Command> commands = {
         }
         std::string val;
         if(pargs.has("value")) {
-            val = pargs("value");        
+            val = pargs("value");
+            if(pargs["-list"]) {
+                List potential_list;
+                if(Global::is_list(val)) {
+                    potential_list = Global::get_list(val);
+                }
+                else if(List::is(val)) {
+                    potential_list.from_string(val);
+                }
+                else {
+                    for(auto i : val) {
+                        potential_list.elements.push_back(std::string(1,i));
+                    }
+                }
+
+                val = "";
+                for(auto i : potential_list.elements) {
+                    val += i;
+                }
+            }
         }
         if(pargs["-global"] && Global::disable_global_setting == 0) {
             Global::set_global_variable(pargs("name"),val);
@@ -218,7 +238,7 @@ inline const std::vector<Command> commands = {
             fs::remove(ph);
         }
         catch(...) {
-            return 4;
+            return 6;
         }
         
         return 0;
@@ -829,6 +849,10 @@ inline const std::vector<Command> commands = {
             }
         }
 
+        if(nfun.name.back() == '\'') {
+            nfun.body = check_subshell(replace_vars(nfun.body));
+        }
+
         Global::functions.top().push_back(nfun);
 
         return Global::error_code;
@@ -1214,7 +1238,6 @@ inline const std::vector<Command> commands = {
     ,[](ParsedArgs pargs)->int { // return error code!
     IN_CLASS_CHECK(false)    
         if(!pargs) {
-            std::cout << "Error!\n";
             Global::err_msg = pargs.error();
             return 2;
         }
@@ -1252,7 +1275,6 @@ inline const std::vector<Command> commands = {
     ,[](ParsedArgs pargs)->int { // return error code!
     IN_CLASS_CHECK(false)    
         if(!pargs) {
-            std::cout << "Error!\n";
             Global::err_msg = pargs.error();
             return 2;
         }
@@ -1293,13 +1315,11 @@ inline const std::vector<Command> commands = {
     }},
     {"pop",{}, ArgParser()
         .addArg("list",ARG_GET,{},-1,Arg::Priority::FORCE)
-        .addArg("index",ARG_GET,{},-1,Arg::Priority::FORCE)
         .addArg("-nstring",ARG_TAG,{"-ns"})
         .addArg("-fstring",ARG_TAG,{"-fs"})
     ,[](ParsedArgs pargs)->int { // return error code!
     IN_CLASS_CHECK(false)    
         if(!pargs) {
-            std::cout << "Error!\n";
             Global::err_msg = pargs.error();
             return 2;
         }
@@ -1338,11 +1358,6 @@ inline const std::vector<Command> commands = {
         if(!pargs) {
             Global::err_msg = pargs.error();
             return 2;
-        }
-
-        if(!Global::in_class()) {
-            Global::err_msg = "Can only define member inside a class!";
-            return 4;
         }
 
         std::string params = pargs("params");
@@ -1499,10 +1514,15 @@ inline const std::vector<Command> commands = {
         body.erase(body.begin());
 
         auto r = IniHelper::tls::split_by(body,{'\n','\0'},{},{},true,false,false);
+        int errc = 0;
+        try {
+            errc = run(r,false,{},pargs["-new-scope"]);
+        }
+        catch(Global::ErrorException& err) {
+            errc = Global::error_code;
+        }
 
-        int err = run(r,false,{},pargs["-new-scope"]);
-
-        Global::set_variable(var,std::to_string(err));
+        Global::set_variable(var,std::to_string(errc));
 
         return 0;
     }},

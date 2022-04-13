@@ -582,10 +582,10 @@ std::vector<std::string> IniHelper::tls::split_by(std::string str,std::vector<ch
     bool just_found_str = false;
     for(size_t i = 0; i < str.size(); ++i) {
         just_found_str = false;
-        if(isIn(str[i],{'[','{','('}) && ignore_in_braces) {
+        if(isIn(str[i],{'[','{','('}) && ignore_in_braces && !in_str) {
             ++ignore;
         }
-        if(isIn(str[i],{']','}',')'}) && ignore_in_braces) {
+        if(isIn(str[i],{']','}',')'}) && ignore_in_braces && !in_str) {
             --ignore;
         }
 

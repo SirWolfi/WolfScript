@@ -98,6 +98,12 @@ namespace Global {
         bool is_member(std::string name, Class* cls);
 
     } // namespace clstls
+
+    class ErrorException {
+    public:
+        ErrorException() {};
+        // dummy class
+    };
 } // namespace Global
 
 #endif // ifndef GLOBAL_HPP

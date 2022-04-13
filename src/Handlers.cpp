@@ -288,6 +288,10 @@ int run_subshell(std::string sh) {
     Global::functions = funs;
     --Global::in_subshell;
 
+    if(err != 0) {
+        // throw Global::ErrorException{};
+        Global::err_msg = "Subshell failed!";
+    }
     return err;
 }
 
@@ -349,7 +353,9 @@ size_t find(std::string name, bool& failed, bool& function) {
 
 void run_function(Function fun, std::vector<std::string> lex, std::map<std::string,std::string> add) {
     LOG("calling run_function() ...")
+    
     if(fun.name.back() != '~') {
+        int old_size = lex.size();
         LOG("replacing `lex`... (Size:" << lex.size() << ")")
         lex = replace_vars(lex);
         lex = check_subshell(lex);
@@ -374,12 +380,9 @@ void run_function(Function fun, std::vector<std::string> lex, std::map<std::stri
 
     LOG("lexing body...")
     std::vector<std::string> r;
-    if(fun.name.back() != '\'') {
-        r = IniHelper::tls::split_by(fun.body,{'\n','\0'},{},{},true,true,false);
-    }
-    else {
-        r = IniHelper::tls::split_by(replace_vars(fun.body),{'\n','\0'},{},{},true,true,false);
-    }
+
+    r = IniHelper::tls::split_by(fun.body,{'\n','\0'},{},{},true,true,false);
+
     LOG("run process...")
     Global::push_call_stack(fun.name);
     ++Global::in_function;
@@ -411,6 +414,19 @@ int run(std::vector<std::string> lines, bool main, std::map<std::string,std::str
         auto lex = IniHelper::tls::split_by(lines[i],{' ','\t'},{},{},true,true,true);
         std::string name = lex[0];
         lex.erase(lex.begin()); // erase name
+
+        bool changed = true;
+        while (changed) {
+            std::string old_name = name;
+            if(name[0] == '$') {
+                name = replace_vars(name);
+            }
+            if(name[0] == '!') {
+                name = check_subshell(name);
+            }
+            changed = old_name != name;
+        }
+
         bool failed = false;
         bool function = false;
         auto idx = find(name,failed,function);
@@ -512,6 +528,25 @@ int run(std::vector<std::string> lines, bool main, std::map<std::string,std::str
     return Global::error_code;
 }
 
+void error_message(int code) {
+    std::string lline = Tools::until_newline(Global::last_line);
+    int err_size = std::to_string(Global::instruction.top()).size() + lline.size() + 7;
+
+    std::cout << "Exited with error code: " << code << "\n";
+    std::cout << "Error message: " << Global::err_msg << "\n";
+    std::cout << "Error occured in instruction " << Global::instruction.top() << "\n";
+    std::cout << "\t  |" << std::string(err_size,'-') << "|\n";
+    std::cout << "\t> | " << Global::instruction.top() << " - \"" << lline << "\" | <\n";
+    std::cout << "\t  |" << std::string(err_size,'-') << "|\n";
+    std::cout << "\nCall Stack:\n";
+    auto v = Global::call_stack;
+    while(!v.empty()) {
+        auto cur = v.top();
+        std::cout << " -> in " << cur << "\n";
+        v.pop();
+    }
+}
+
 int run_file(std::string pfile, bool main, bool allow_twice) {
     if(!Global::current.empty()) {
         Global::current.push(Global::current.top().parent_path().string() + SP + fs::path(pfile).remove_filename().string());
@@ -557,8 +592,19 @@ int run_file(std::string pfile, bool main, bool allow_twice) {
     Global::scope_deepness.push(0);
     Global::current_main_file.push(main);
     Global::current_file.push(file.filename());
+    int ret = 0;
 
-    int ret = run(lines,main,{},main);
+    try {
+        ret = run(lines,main,{},main);
+    }
+    catch(Global::ErrorException& err) {
+        Global::scope_deepness.pop();
+        Global::current_main_file.pop();
+        Global::current_file.pop();
+        Global::current.pop();
+        error_message(Global::error_code);
+        return Global::error_code;
+    }
 
     Global::scope_deepness.pop();
     Global::current_main_file.pop();
@@ -566,53 +612,11 @@ int run_file(std::string pfile, bool main, bool allow_twice) {
     Global::current.pop();
 
     if(!main) {
-        /*if (!Global::cache::function_cache.empty()) {
-            std::string errm = "";
-            Global::functions.top() = Tools::merge_functions(Global::functions.top(),Global::cache::function_cache,errm);
-
-            if(errm != "") {
-                Global::err_msg = errm;
-                return 3;
-            }
-        }
-        if (!Global::cache::new_classes.empty()) {
-            std::string errm = "";
-            Global::classes.top() = Tools::merge_classes(Global::classes.top(),Global::cache::new_classes,errm);
-
-            if(errm != "") {
-                Global::err_msg = errm;
-                return 3;
-            }
-        }
-        if (!Global::cache::class_instance_cache.empty()) {
-            std::string errm = "";
-            Global::class_instances.top() = Tools::merge_classes(Global::class_instances.top(),Global::cache::class_instance_cache,errm);
-
-            if(errm != "") {
-                Global::err_msg = errm;
-                return 3;
-            }
-        }*/
         Global::imported_files.push_back(file);
     }
 
     if(ret != 0) {
-        std::string lline = Tools::until_newline(Global::last_line);
-        int err_size = std::to_string(Global::instruction.top()).size() + lline.size() + 7;
-
-        std::cout << "Exited with error code: " << ret << "\n";
-        std::cout << "Error message: " << Global::err_msg << "\n";
-        std::cout << "Error occured in instruction " << Global::instruction.top() << "\n";
-        std::cout << "\t  |" << std::string(err_size,'-') << "|\n";
-        std::cout << "\t> | " << Global::instruction.top() << " - \"" << lline << "\" | <\n";
-        std::cout << "\t  |" << std::string(err_size,'-') << "|\n";
-        std::cout << "\nCall Stack:\n";
-        auto v = Global::call_stack;
-        while(!v.empty()) {
-            auto cur = v.top();
-            std::cout << " -> in " << cur << "\n";
-            v.pop();
-        }
+        error_message(ret);
     }
     return ret;
 }
