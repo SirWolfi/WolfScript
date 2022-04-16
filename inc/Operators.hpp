@@ -62,9 +62,13 @@ inline std::vector<Operator> operators = {
     }},
     {"/",[](std::string left,std::string right,bool& failed)->std::string {
         std::string typel = get_type(left), typer = get_type(right);
-
+	
         if(typel == "int" && typer == "int") {
-            return std::to_string(std::stoi(left) / std::stoi(right));
+	        if(std::stoi(right) == 0) {
+                failed = true;
+                return "";
+	        }
+            return std::to_string(static_cast<int>(std::stoi(left) / std::stoi(right)));
         }
         failed = true;
         return "";
@@ -82,7 +86,7 @@ inline std::vector<Operator> operators = {
         std::string typel = get_type(left), typer = get_type(right);
 
         if(typel == "int" && typer == "int") {
-            return std::to_string(std::pow(std::stoi(left), std::stoi(right)));
+            return std::to_string(static_cast<int>(std::pow(std::stoi(left), std::stoi(right))));
         }
         failed = true;
         return "";

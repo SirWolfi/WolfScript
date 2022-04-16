@@ -1,0 +1,83 @@
+namespace Nodes {
+    list -g nodes []
+
+    func add_node [name,question,answer] {
+        list -g nodes !{push nodes [ $name, $question, $answer ]}
+    }
+
+    func get_node [name] {
+        set idx 0
+        set nfound true
+        for i in nodes {
+            if (!{take 0 $i} = $name) {
+                echo $idx
+                set -nn nfound false
+                break
+            }
+            set -nn idx !{expr ($idx + 1)}
+        }
+        if ($nfound) {
+            echo -1
+        }
+    }
+
+    func get_name [idx] {
+        echo !{take 0 !{take $idx nodes}}
+    }
+
+    func get_answer [name] {
+        set idx !{get_node $name}
+
+        if ($idx = -1) {
+            return 2
+        }
+
+        echo !{take 2 !{take $idx nodes}}
+    }
+
+    func get_question [name] {
+        set idx !{get_node $name}
+
+        if ($idx = -1) {
+            return 2
+        }
+
+        echo !{take 1 !{take $idx nodes}}
+    }
+
+    func remove_node [name] {
+        set idx !{Nodes.get_node "$name"}
+        
+        set total_size !{expr (!{length nodes -ns} - 1)}
+
+        if ($idx = -1) {
+            return 2
+        }
+        elif ($idx > $total_size) {
+            return 2
+        }
+
+        list -g nodes !{erase nodes $idx -ns}
+    }
+
+    func save_to_file [file] {
+        set idx 0
+        for i in nodes {
+            inimod set "$file" "$idx" SAVE "$i"
+            set -nn idx !{expr ($idx + 1)}
+        }
+        inimod set "$file" "size" SAVE $idx
+    }
+
+    func clear_nodes [] {
+        list -g nodes []
+    }
+
+    func from_file [file] {
+        clear_nodes
+        set size !{inimod get "$file" size SAVE}
+        for i in !{range $size} {
+            list -g nodes !{push nodes !{inimod get "$file" "$i" SAVE} -ns}
+        }
+    }
+}

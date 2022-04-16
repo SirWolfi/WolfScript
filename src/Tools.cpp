@@ -118,9 +118,16 @@ void Tools::merge_maps(std::map<std::string,std::string> prio1, std::map<std::st
 
 std::string Tools::until_newline(std::string str) {
     std::string ret;
+    bool found_normal_ch = false;
     for(auto i : str) {
-        if(i == '\n') {
+        if(!found_normal_ch && (i == ' ' || i == '\t')) {
+            continue;
+        }
+        else if(i == '\n') {
             break;
+        }
+        else {
+            found_normal_ch = true;
         }
         ret += i;
     }

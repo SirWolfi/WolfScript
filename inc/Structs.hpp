@@ -9,14 +9,41 @@
 #include "ArgParser/ArgParser.h"
 #include "Tools.hpp"
 
+struct Function;
+struct Class;
+struct List;
+
+struct Scope {
+    int parent = -1;
+
+    int index = 0;
+    std::map<std::string,std::string> variables;
+    std::vector<Class> class_instances;
+    std::map<std::string,List> lists;
+    std::vector<Function> functions;
+    std::vector<Class> classes;
+    std::string current_file;
+    Class* current_owner = nullptr;
+
+    size_t deepness = 0;
+    size_t instruction = 0;
+    bool last_if_result = false;
+
+    bool freed = false; // internal stuff, do not touch!
+};
+
 struct Function {
     std::string name;
     std::vector<std::string> params;
     std::string body;
     std::string from_file;
+    std::vector<std::string> in_namespace;
     bool is_virtual = false;
-
+    
+    Scope scope;
     Class* owner = nullptr;
+
+    bool failed = false;
 };
 
 struct Class {
@@ -129,6 +156,7 @@ struct Command {
     ArgParser parser;
     int (*fun)(ParsedArgs pargs);
     bool replace_v = true;
+    bool save_scope = false;
 };
 
 #endif // ifndef STRUCTS_HPP

@@ -65,6 +65,7 @@ inline const std::vector<Command> commands = {
             LOG("has(set) is true in command inimod!")
             if(pargs.has("set1") && pargs.has("set2") && pargs.has("set3") && pargs.has("set4")) {
                 std::string file = pargs("set1");
+                file = Global::current.top().string() + SP + file;
                 std::string key = pargs("set2");
                 std::string section = pargs("set3");
                 std::string value = pargs("set4");
@@ -91,6 +92,7 @@ inline const std::vector<Command> commands = {
         if(pargs.has("get")) {
             if(pargs.has("set1") && pargs.has("set2")) {
                 std::string file = pargs("set1");
+                file = Global::current.top().string() + SP + file;
                 std::string key = pargs("set2");
                 std::string section;
                 if(pargs.has("set3"))
@@ -191,23 +193,9 @@ inline const std::vector<Command> commands = {
             if(pargs["-no-new"]) {
                 nw = true && Global::disable_global_setting == 0;
             }
-            Global::set_variable(pargs("name"),val,nw);
+            
+            Global::set_variable(pargs("name"),val,nw, (Global::in_namespace.empty() ? std::vector<std::string>({}) : Global::in_namespace.top()));
         }
-        return 0;
-    }},
-    {"varc",{}, ArgParser()
-         
-    ,[](ParsedArgs pargs)->int { // return error code!
-    IN_CLASS_CHECK(false)    
-        if(!pargs && pargs != ArgParserErrors::NO_ARGS) {
-            Global::err_msg = pargs.error();
-            return 2;
-        }
-        LOG("running varc")
-        for(auto i : Global::variables.top()) {
-            std::cout << i.first << " : " << i.second << "\n";
-        }
-        std::cout << "Scope: " << Global::scope_deepness.top() << "\n";
         return 0;
     }},
     {"dir",{}, ArgParser()
@@ -250,7 +238,10 @@ inline const std::vector<Command> commands = {
             Global::err_msg = pargs.error();
             return 2;
         }
-        std::cout << Global::err_msg << "\n";
+        std::cout << Global::err_msg;
+        if(Global::in_subshell == 0) {
+            std::cout << "\n";
+        }
         return 0;
     }},
     {"ls",{}, ArgParser()
@@ -560,7 +551,7 @@ inline const std::vector<Command> commands = {
                 return err;
             }
         }
-        Global::last_if_result.top() = check; // fix!
+        Global::current_scope()->last_if_result = check;
         return 0;
     },false},
     {"elif",{}, ArgParser()
@@ -590,8 +581,8 @@ inline const std::vector<Command> commands = {
         if(failed) {
             return 2; // error code already set!
         }
-        if(check && !Global::last_if_result.top()) {
-            Global::last_if_result.top() = true;
+        if(check && !Global::current_scope()->last_if_result) {
+            Global::current_scope()->last_if_result = true;
             int err = run(coms);
             if(err != 0) {
                 return err;
@@ -618,8 +609,8 @@ inline const std::vector<Command> commands = {
         com.erase(com.begin());
         auto coms = IniHelper::tls::split_by(com, {'\n','\0'}, {}, {},true,true,false);
 
-        if(!Global::last_if_result.top()) {
-            Global::last_if_result.top() = true;
+        if(!Global::current_scope()->last_if_result) {
+            Global::current_scope()->last_if_result = true;
             int err = run(coms);
             if(err != 0) {
                 return err;
@@ -807,7 +798,8 @@ inline const std::vector<Command> commands = {
         Function nfun;
         nfun.name = name;
         nfun.body = com;
-        nfun.from_file = Global::current_file.top();
+        nfun.from_file = Global::current_scope()->current_file;
+        nfun.scope.parent = Global::current_scope()->index;
         params.pop_back();
         params.erase(params.begin());
 
@@ -853,7 +845,7 @@ inline const std::vector<Command> commands = {
             nfun.body = check_subshell(replace_vars(nfun.body));
         }
 
-        Global::functions.top().push_back(nfun);
+        Global::current_scope()->functions.push_back(nfun);
 
         return Global::error_code;
     },false},
@@ -949,7 +941,7 @@ inline const std::vector<Command> commands = {
         Class new_class;
         new_class.is_private = pargs["-private"];
         if(pargs["-private"]) {
-            new_class.bind_to_file = Global::current.top().string() + Global::current_file.top();
+            new_class.bind_to_file = Global::current.top().string() + Global::current_scope()->current_file;
         }
         new_class.name = pargs("name");
         std::string body = pargs("body");
@@ -968,7 +960,7 @@ inline const std::vector<Command> commands = {
         ++Global::in_class_i;
         Global::current_class.push(&new_class);
         CATCH_OUTPUT({ // no output please ;-;
-            err = run(r);
+            err = run(r,false,{},true);
         });
         Global::current_class.pop();
         --Global::in_class_i;
@@ -1009,10 +1001,10 @@ inline const std::vector<Command> commands = {
         Global::cache::new_defined_methods.clear();
         Global::cache::new_defined_members.clear();
         Global::cache::new_class_extends.clear();
-        Global::classes.top().push_back(new_class);
+        Global::current_scope()->classes.push_back(new_class);
 
-        for(auto& i : Global::classes.top().back().methods) {
-            i.owner = &Global::classes.top().back();
+        for(auto& i : Global::current_scope()->classes.back().methods) {
+            i.owner = &Global::current_scope()->classes.back();
         }
 
         return 0;
@@ -1040,7 +1032,7 @@ inline const std::vector<Command> commands = {
             Global::global_lists[pargs("name")] = nlist;
         }
         else {
-            Global::lists.top()[pargs("name")] = nlist;
+            Global::current_scope()->lists[pargs("name")] = nlist;
         }
 
         return 0;
@@ -1381,7 +1373,7 @@ inline const std::vector<Command> commands = {
         nfun.body = com;
         nfun.is_virtual = pargs["-virtual"];
         nfun.owner = Global::current_class.top();
-        nfun.from_file = Global::current_file.top();
+        nfun.from_file = Global::current_scope()->current_file;
         params.pop_back();
         params.erase(params.begin());
 
@@ -1520,6 +1512,7 @@ inline const std::vector<Command> commands = {
         }
         catch(Global::ErrorException& err) {
             errc = Global::error_code;
+            // return errc;
         }
 
         Global::set_variable(var,std::to_string(errc));
@@ -1548,6 +1541,55 @@ inline const std::vector<Command> commands = {
 
         return num;
     }},
+    {"namespace",{}, ArgParser()
+        .addArg("name",ARG_GET,{},-1,Arg::Priority::FORCE)
+        .addArg("body",ARG_GET,{},-1,Arg::Priority::FORCE)
+    ,[](ParsedArgs pargs)->int { // return error code!
+    IN_CLASS_CHECK(false)    
+        if(!pargs) {
+            Global::err_msg = pargs.error();
+            return 2;
+        }
+        std::string name = pargs("name") + ".";
+        std::string body = pargs("body");
+        if(!Tools::br_check(body,'{','}')) {
+            Global::err_msg = "Brace missmatch!";
+            return 2;
+        }
+
+        body.erase(body.begin());
+        body.pop_back();
+
+        auto r = IniHelper::tls::split_by(body,{'\n','\0'},{},{},true,false,false);
+        Global::running_namespace.push(pargs("name"));
+        LOG("Running namespace...")
+        int err = run(r,/*Global::current_main_file.top() == 0*/false,{},true,false);
+
+        auto funs = Global::cache::function_cache;
+        auto vars = Global::cache::variable_cache;
+        auto classes = Global::cache::new_classes;
+        auto instances = Global::cache::class_instance_cache;
+
+        for(auto i : funs) {
+            i.name = name + i.name;
+            i.in_namespace.push_back(pargs("name"));
+            Global::current_scope()->functions.push_back(i);
+        }
+        for(auto i : vars) {
+            Global::current_scope()->variables[name + i.first] = i.second;
+        }
+        for(auto i : classes) {
+            i.name = name + i.name;
+            Global::current_scope()->classes.push_back(i);
+        }
+        for(auto i : instances) {
+            i.name = name + i.name;
+            Global::current_scope()->class_instances.push_back(i);
+        }
+
+        Global::running_namespace.pop();
+        return err;
+    },false},
 };
 
 #endif // ifndef COMMANDS_HPP

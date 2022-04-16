@@ -1,0 +1,62 @@
+import nodes
+
+namespace Loop {
+    set running false
+
+    func get_input [] {
+        getline input "Your command: "
+        echo "$input"
+    }
+
+    func handle_input [input] {
+        if ("$input" = "quit") {
+            exit
+        }
+        elif ("$input" = "add") {
+            getline name Name:
+            getline question Question:
+            getline answer Answer:
+
+            Nodes.add_node "$name" "$question" "$answer"
+        }
+        elif ("$input" = "remove") {
+            getline name Name:
+            Nodes.remove_node "$name"
+        }
+        elif ("$input" = "ask") {
+            set size !{length nodes -ns}
+            set correct 0
+            for i in !{range !{length nodes -ns}} {
+                clear
+                echo ---- !{Nodes.get_name "$i"} ----
+                echo
+                echo !{take 1 !{take $i nodes}}
+                getline answer ": "
+
+                if ($answer = !{take 2 !{take $i nodes}}) {
+                    echo Right!
+                    set -nn correct !{expr ($correct + 1)}
+                    sleep 1000
+                }
+                else {
+                    echo Wrong! The right answer would be:
+                    echo "!{take 2 !{take $i nodes}}"
+                    sleep 2000
+                }
+            }
+            clear
+            echo Finished!
+            echo You got $correct out of $size correct!
+            sleep 3000
+            clear
+        }
+        elif ("$input" = "save") {
+            getline file "To file: "
+            Nodes.save_to_file "$file"
+        }
+        elif ("$input" = "load") {
+            getline file "From file: "
+            Nodes.from_file "$file"
+        }
+    }
+}

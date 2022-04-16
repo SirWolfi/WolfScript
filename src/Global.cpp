@@ -2,34 +2,116 @@
 
 bool Global::in_class() { return in_class_i != 0; }
 
-std::string Global::get_variable(std::string var) {
-    auto tmpv = variables;
-    while(!tmpv.empty()) {
-        auto cur = tmpv.top();
-        if(cur.count(var) != 0) {
-            return cur[var];
+std::string Global::get_variable(std::string var, std::vector<std::string> from_namespaces) {
+    if(!from_namespaces.empty()) {
+        std::string total_name = "";
+        for(int i = from_namespaces.size()-1; i != -1; --i) {
+            std::string nname = from_namespaces[i] + "." + var;
+            int idx = Global::current_scope()->index;
+            while(idx != -1 && !Global::get_scope(idx)->freed) {
+                for(auto& i : Global::cache::saved_scopes[idx].variables) {
+                    if(i.first == nname) {
+                        return Global::cache::saved_scopes[idx].variables[nname];
+                    }
+                }
+                idx = Global::cache::saved_scopes[idx].parent;
+            }
+
+            if(total_name != "") {
+                total_name += "." + from_namespaces[i];
+            }
+            else {
+                total_name += from_namespaces[i];
+            }
+            nname = total_name + "." + var;
+            LOG("Total name:" << total_name)
+            LOG("checking for variable:" << nname)
+            idx = Global::current_scope()->index;
+            while(idx != -1 && !Global::get_scope(idx)->freed) {
+                for(auto& i : Global::cache::saved_scopes[idx].variables) {
+                    if(i.first == nname) {
+                        return Global::cache::saved_scopes[idx].variables[nname];
+                    }
+                }
+                idx = Global::cache::saved_scopes[idx].parent;
+            }
         }
-        tmpv.pop();
+    }
+
+    int idx = Global::current_scope()->index;
+    while(idx != -1 && !Global::get_scope(idx)->freed) {
+        for(auto& i : Global::cache::saved_scopes[idx].variables) {
+            if(i.first == var) {
+                return i.second;
+            }
+        }
+        idx = Global::cache::saved_scopes[idx].parent;
     }
 
     if(global_vars.count(var) != 0) {
         return global_vars[var];
     }
+
+    Global::err_msg = "Undefined variable! (" + var + ")";
+    Global::error_code = 7;
+    throw Global::ErrorException{};
     return "";
 }
 
-void Global::set_variable(std::string name, std::string val, bool no_new) {
+void Global::set_variable(std::string name, std::string val, bool no_new, std::vector<std::string> from_namespaces) {
     if(!no_new) {
-        variables.top()[name] = val;
+        current_scope()->variables[name] = val;
     }
     else {
-        for(auto& i : variables.data()) {
-            if(i.count(name) != 0) {
-                i[name] = val;
-                return;
+        if(!from_namespaces.empty()) {
+            std::string total_name = "";
+            for(int i = from_namespaces.size()-1; i != -1; --i) {
+                std::string nname = from_namespaces[i] + "." + name;
+                int idx = Global::current_scope()->index;
+                while(idx != -1 && !Global::get_scope(idx)->freed) {
+                    for(auto& i : Global::cache::saved_scopes[idx].variables) {
+                        if(i.first == nname) {
+                            Global::cache::saved_scopes[idx].variables[nname] = val;
+                            return;
+                        }
+                    }
+                    idx = Global::cache::saved_scopes[idx].parent;
+                }
+
+                if(total_name != "") {
+                    total_name += "." + from_namespaces[i];
+                }
+                else {
+                    total_name += from_namespaces[i];
+                }
+                nname = total_name + "." + name;
+                LOG("Total name:" << total_name)
+                LOG("checking for variable:" << nname)
+                idx = Global::current_scope()->index;
+                while(idx != -1 && !Global::get_scope(idx)->freed) {
+                    for(auto& i : Global::cache::saved_scopes[idx].variables) {
+                        if(i.first == nname) {
+                            Global::cache::saved_scopes[idx].variables[nname] = val;
+                            return;
+                        }
+                    }
+                    idx = Global::cache::saved_scopes[idx].parent;
+                }
             }
         }
-        variables.top()[name] = val;
+
+        int idx = Global::current_scope()->index;
+        while(idx != -1 && !Global::get_scope(idx)->freed) {
+            for(auto& i : Global::cache::saved_scopes[idx].variables) {
+                if(i.first == name) {
+                    Global::cache::saved_scopes[idx].variables[name] = val;
+                    return;
+                }
+            }
+            idx = Global::cache::saved_scopes[idx].parent;
+        }
+
+        current_scope()->variables[name] = val;
     }
 }
 
@@ -43,14 +125,14 @@ void Global::set_global_variable(std::string name, std::string val, bool hard) {
 }
 
 bool Global::is_list(std::string list) {
-    auto tmpv = lists;
-
-    while(!tmpv.empty()) {
-        auto cur = tmpv.top();
-        if(cur.count(list) != 0) {
-            return true;
+    int idx = Global::current_scope()->index;
+    while(idx != -1 && !Global::get_scope(idx)->freed) {
+        for(auto& i : Global::cache::saved_scopes[idx].lists) {
+            if(i.first == list) {
+                return true;
+            }
         }
-        tmpv.pop();
+        idx = Global::cache::saved_scopes[idx].parent;
     }
 
     if(global_lists.count(list) != 0) {
@@ -64,14 +146,15 @@ bool Global::is_var(std::string var) {
     if(var != "" && var.front() == '$') {
         var.erase(var.begin());
     }
-    auto tmpv = variables;
-    while(!tmpv.empty()) {
-        auto cur = tmpv.top();
-        if(cur.count(var) != 0) {
-            LOG("Is in normal scope...")
-            return true;
+
+    int idx = Global::current_scope()->index;
+    while(idx != -1 && !Global::get_scope(idx)->freed) {
+        for(auto& i : Global::cache::saved_scopes[idx].variables) {
+            if(i.first == var) {
+                return true;
+            }
         }
-        tmpv.pop();
+        idx = Global::cache::saved_scopes[idx].parent;
     }
 
     if(global_vars.count(var) != 0) {
@@ -83,14 +166,14 @@ bool Global::is_var(std::string var) {
 }
 
 List Global::get_list(std::string list) {
-    auto tmpv = lists;
-
-    while(!tmpv.empty()) {
-        auto cur = tmpv.top();
-        if(cur.count(list) != 0) {
-            return cur[list];
+    int idx = Global::current_scope()->index;
+    while(idx != -1 && !Global::get_scope(idx)->freed) {
+        for(auto& i : Global::cache::saved_scopes[idx].lists) {
+            if(i.first == list) {
+                return i.second;
+            }
         }
-        tmpv.pop();
+        idx = Global::cache::saved_scopes[idx].parent;
     }
 
     if(global_lists.count(list) != 0) {
@@ -99,82 +182,131 @@ List Global::get_list(std::string list) {
     return List();
 }
 
-Function Global::get_function(std::string name) {
-    auto tmpv = functions;
+Function Global::get_function(std::string name, std::vector<std::string> from_namespaces) {
+    if(!from_namespaces.empty()) {
+        std::string total_name = "";
+        for(int i = from_namespaces.size()-1; i != -1; --i) {
+            std::string nname = from_namespaces[i] + "." + name;
+            int idx = Global::current_scope()->index;
+            while(idx != -1 && !Global::get_scope(idx)->freed) {
+                LOG("Searching function with index: " << idx)
+                for(auto& i : Global::cache::saved_scopes[idx].functions) {
+                    if(i.name == nname) {
+                        return i;
+                    }
+                }
+                idx = Global::cache::saved_scopes[idx].parent;
+            }
 
-    while(!tmpv.empty()) {
-        auto cur = tmpv.top();
-        for(auto i : cur) {
+            if(total_name != "") {
+                total_name += "." + from_namespaces[i];
+            }
+            else {
+                total_name += from_namespaces[i];
+            }
+            nname = total_name + "." + name;
+            LOG("Total name:" << total_name)
+            LOG("checking for function:" << nname)
+            idx = Global::current_scope()->index;
+            while(idx != -1 && !Global::get_scope(idx)->freed) {
+                LOG("Searching function with index: " << idx)
+                for(auto& i : Global::cache::saved_scopes[idx].functions) {
+                    if(i.name == nname) {
+                        return i;
+                    }
+                }
+                idx = Global::cache::saved_scopes[idx].parent;
+            }
+        }
+    }
+
+    int idx = Global::scopes.top();
+    while(idx != -1 && !Global::get_scope(idx)->freed) {
+        LOG("Searching function with index: " << idx)
+        for(auto& i : Global::cache::saved_scopes[idx].functions) {
             if(i.name == name) {
                 return i;
             }
         }
-        tmpv.pop();
+        idx = Global::cache::saved_scopes[idx].parent;
     }
-    return Function{};
+
+    Function ret;
+    ret.failed = true;
+    return ret;
 }
 
-void Global::push_scope(std::map<std::string,std::string> add_vars) {
-    LOG("Pushing scope...(" << Global::scope_deepness.top() << ")")
-    ++Global::scope_deepness.top();
-    variables.push(add_vars);
-    functions.push({});
-    classes.push({});
-    class_instances.push({});
-    lists.push({});
-    last_if_result.push(false);
-    instruction.push(0);
-}
+void Global::push_scope(std::map<std::string,std::string> add_vars, int load_idx) {
+    LOG("pushing scope!")
+    if(load_idx >= -1) {
+        Scope scp;
 
-void Global::pop_scope() {
-    LOG("Poping scope... (" << Global::scope_deepness.top() << ")")
-    if(Global::scope_deepness.top() != 0) {
-        --Global::scope_deepness.top();
-    }
 
-    if(!variables.empty()) {
-        cache::variable_cache = variables.pop();
-    }
+        scp.variables = add_vars;
+        if(!scopes.empty()) {
+            scp.parent = scopes.top(); // TODO: fix!
+            scp.current_file = Global::current_scope()->current_file;
+        }
 
-    if(!class_instances.empty()) {
-        Global::cache::class_instance_cache = class_instances.pop();
-    }
-
-    if(!functions.empty()) {
-        cache::function_cache = functions.pop();
-    }
-
-    if(!classes.empty()) {
-        Global::cache::new_classes = classes.pop();
-        for(size_t i = 0; i < Global::cache::new_classes.size(); ++i) {
-            if(Global::cache::new_classes[i].is_private) {
-                Global::cache::new_classes.erase(Global::cache::new_classes.begin()+i);
-                --i;
+        for(size_t i = 0; i < cache::saved_scopes.size(); ++i) {
+            if(cache::saved_scopes[i].freed) {
+                scp.index = i;
+                cache::saved_scopes[i] = scp;
+                scopes.push(scp.index);
+                return;
             }
         }
-    }
 
-    if(!lists.empty()) {
-        lists.pop();
+        scp.index = cache::saved_scopes.size();
+        cache::saved_scopes.push_back(scp);
+        scopes.push(scp.index);
     }
-
-    if(!last_if_result.empty()) {
-        last_if_result.pop();
+    else {
+        scopes.push(load_idx);
+        if(!add_vars.empty()) {
+            Tools::merge_maps(add_vars,current_scope()->variables);
+        }
     }
+}
 
-    if(!instruction.empty()) {
-        instruction.pop();
+void Global::pop_scope(bool keep_save) {
+    LOG("Poping scope...")
+    if(!scopes.empty()) {
+        LOG("poping index:" << scopes.top() << "; saved_scopes.size() = " << cache::saved_scopes.size())
+        if(!keep_save) {
+            cache::saved_scopes[scopes.top()].freed = true;
+        }
+
+        cache::function_cache = current_scope()->functions;
+        cache::variable_cache = current_scope()->variables;
+        cache::new_classes = current_scope()->classes;
+        cache::class_instance_cache = current_scope()->class_instances;
+
+        scopes.pop();
+        LOG("Poped!")
     }
 }
 
 void Global::push_call_stack(std::string line) {
-    call_stack.push("(" + Global::current_file.top() + ") " + std::to_string(Global::instruction.top()) + " | \"" + line + "\"");
+    call_stack.push("(" + Global::current_scope()->current_file + ") " + std::to_string(Global::current_scope()->instruction) + " | \"" + line + "\"");
 }
 
 void Global::pop_call_stack() {
     if(!call_stack.empty()) {
         call_stack.pop();
     }
+}
+
+std::vector<std::string> Global::merge_namespaces() {
+    std::vector<std::string> ret;
+    auto tmp = Global::running_namespace;
+    while(!tmp.empty()) {
+        if(tmp.top() != "") {
+            ret.push_back(tmp.top());
+        }
+        tmp.pop();
+    }
+    return ret;
 }
 
 
@@ -207,13 +339,14 @@ Class* Global::clstls::get_class(std::string name) {
         return nullptr;
     }
 
-    for(auto& i : classes.data()) {
-        for(auto& j : i) {
-            if(j.name == name) {
-                if(!j.is_private || j.bind_to_file == Global::current.top().string() + Global::current_file.top())
-                return &j;
+    int idx = Global::current_scope()->index;
+    while(idx != -1 && !Global::get_scope(idx)->freed) {
+        for(auto& i : Global::cache::saved_scopes[idx].classes) {
+            if(i.name == name) {
+                return &i;
             }
         }
+        idx = Global::cache::saved_scopes[idx].parent;
     }
     return nullptr;
 }
@@ -223,15 +356,16 @@ Class* Global::clstls::get_class_instance(std::string name) {
         return nullptr;
     }
 
-    for(auto& i : class_instances.data()) {
-        LOG("i.size() = " << i.size())
-        for(auto& j : i) {
-            LOG("Checking for:" << j.name << " == " << name)
-            if(j.name == name) {
-                return &j;
+    int idx = Global::current_scope()->index;
+    while(idx != -1 && !Global::get_scope(idx)->freed) {
+        for(auto& i : Global::cache::saved_scopes[idx].class_instances) {
+            if(i.name == name) {
+                return &i;
             }
         }
+        idx = Global::cache::saved_scopes[idx].parent;
     }
+
     LOG("Failed by finding class instance:" << name)
     return nullptr;
 }
@@ -270,4 +404,16 @@ int Global::clstls::is_method(std::string name, Class* cls) {
         }
     }
     return 0;
+}
+
+
+Scope* Global::current_scope() {
+    return &Global::cache::saved_scopes[Global::scopes.top()];
+}
+
+Scope* Global::get_scope(int idx) {
+    if(idx <= -1) {
+        return nullptr;
+    }
+    return &Global::cache::saved_scopes[idx];
 }

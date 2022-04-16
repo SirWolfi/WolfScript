@@ -1,0 +1,14 @@
+import nodes
+import loop
+
+func main [] {
+    set Loop.running true
+    while ($Loop.running) {
+        set input !{Loop.get_input}
+        Loop.handle_input "$input"
+    }
+}
+
+if ($__MAIN__) {
+    main
+}

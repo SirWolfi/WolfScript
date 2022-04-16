@@ -72,4 +72,6 @@ func init [] {
     }
 }
 
-init
+if ($__MAIN__) {
+    init
+}

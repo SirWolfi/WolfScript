@@ -4,46 +4,46 @@
 #include <stack>
 #include <string>
 #include <filesystem>
+#include <exception>
 
 #include "Structs.hpp"
 
 namespace fs = std::filesystem;
 
+#define SAVE_IN_NAMESPACE_GET (Global::in_namespace.empty() ? std::vector<std::string>({}) : Global::in_namespace.top())
+
 namespace Global {
+
     inline std::string version;
     inline std::string last_line = "";
-    inline AccessStack<size_t> instruction;
+    inline std::string last_file = "";
 
     inline std::ostream uncatch(std::cout.rdbuf());
 
     inline std::string start_path;
-    inline AccessStack<size_t> scope_deepness;
     inline int error_code = 0;
     inline bool exit_request = false;
     inline int disable_global_setting = 0;
     inline int pop_run_request = 0;
     inline std::string err_msg = "";
-    inline AccessStack<std::map<std::string,std::string>> variables;
-    inline AccessStack<std::vector<Class>> class_instances;
-    inline AccessStack<std::map<std::string,List>> lists;
     inline std::map<std::string,List> global_lists;
     inline std::map<std::string,std::string> global_vars;
     inline AccessStack<fs::path> current;
-    inline AccessStack<std::vector<Function>> functions;
-    inline AccessStack<std::vector<Class>> classes;
     inline AccessStack<Class*> current_class;
     inline AccessStack<std::string> call_stack;
-    inline AccessStack<int> last_if_result;
+    
     inline bool loop_end_request = false;
     inline bool loop_continue_request = false;
     inline int in_loop = 0;
     inline int in_class_i = 0;
     inline int in_subshell = 0;
     inline int in_function = 0;
+    inline AccessStack<std::vector<std::string>> in_namespace;
+    inline AccessStack<std::string> running_namespace;
     inline AccessStack<int> current_main_file;
-    inline AccessStack<std::string> current_file;
-    inline AccessStack<Class*> current_owner;
     inline std::vector<fs::path> imported_files;
+
+    inline AccessStack<int> scopes; // the indexes!
 
     namespace cache {
         inline std::vector<Function> function_cache;
@@ -53,13 +53,15 @@ namespace Global {
         inline std::vector<Class> new_class_extends;
         inline std::vector<Class> new_classes;
         inline std::vector<Class> class_instance_cache;
+
+        inline std::vector<Scope> saved_scopes;
     } // namespace cache
 
     bool in_class();
 
-    std::string get_variable(std::string var);
+    std::string get_variable(std::string var, std::vector<std::string> from_namespaces = SAVE_IN_NAMESPACE_GET);
 
-    void set_variable(std::string name, std::string val, bool no_new = false);
+    void set_variable(std::string name, std::string val, bool no_new = false, std::vector<std::string> from_namespaces = SAVE_IN_NAMESPACE_GET);
 
     void set_global_variable(std::string name, std::string val, bool hard = true);
 
@@ -69,15 +71,17 @@ namespace Global {
 
     List get_list(std::string list);
 
-    Function get_function(std::string name);
+    Function get_function(std::string name, std::vector<std::string> from_namespaces = SAVE_IN_NAMESPACE_GET);
 
-    void push_scope(std::map<std::string,std::string> add_vars);
+    void push_scope(std::map<std::string,std::string> add_vars, int load_idx = -1);
 
-    void pop_scope();
+    void pop_scope(bool keep_save = false);
 
     void push_call_stack(std::string line);
 
     void pop_call_stack();
+
+    std::vector<std::string> merge_namespaces();
 
     namespace clstls {
         std::tuple<std::string,std::string,bool> extract_class(std::string name);
@@ -99,11 +103,15 @@ namespace Global {
 
     } // namespace clstls
 
-    class ErrorException {
+    class ErrorException : std::exception {
     public:
         ErrorException() {};
         // dummy class
     };
+
+    Scope* current_scope();
+    Scope* get_scope(int idx);
+
 } // namespace Global
 
 #endif // ifndef GLOBAL_HPP

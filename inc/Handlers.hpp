@@ -10,11 +10,11 @@ std::string replace_vars(std::string str);
 
 std::vector<std::string> replace_vars(std::vector<std::string> vec);
 
-std::string handle_sexpr(std::string expr, bool& failed);
+std::string handle_sexpr(std::string expr, bool& failed,bool already_called = false);
 
 bool handle_bexpr(std::string expr, bool& failed);
 
-int run(std::vector<std::string> lines, bool main = false, std::map<std::string,std::string> add = {}, bool new_scope = true);
+int run(std::vector<std::string> lines, bool main = false, std::map<std::string,std::string> add = {}, bool new_scope = true,bool pop_kind = false, int load_idx = -1);
 
 int run_subshell(std::string sh);
 

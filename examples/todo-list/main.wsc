@@ -12,6 +12,5 @@ func main [] {
     }
 }
 
-if ($__MAIN__) {
+
     main
-}
