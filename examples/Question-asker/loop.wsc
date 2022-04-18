@@ -9,21 +9,21 @@ namespace Loop {
     }
 
     func handle_input [input] {
-        if ("$input" = "quit") {
+        if ("$input" == "quit") {
             exit
         }
-        elif ("$input" = "add") {
+        elif ("$input" == "add") {
             getline name Name:
             getline question Question:
             getline answer Answer:
 
             Nodes.add_node "$name" "$question" "$answer"
         }
-        elif ("$input" = "remove") {
+        elif ("$input" == "remove") {
             getline name Name:
             Nodes.remove_node "$name"
         }
-        elif ("$input" = "ask") {
+        elif ("$input" == "ask") {
             set size !{length nodes -ns}
             set correct 0
             for i in !{range !{length nodes -ns}} {
@@ -33,7 +33,7 @@ namespace Loop {
                 echo !{take 1 !{take $i nodes}}
                 getline answer ": "
 
-                if ($answer = !{take 2 !{take $i nodes}}) {
+                if ($answer == !{take 2 !{take $i nodes}}) {
                     echo Right!
                     set -nn correct !{expr ($correct + 1)}
                     sleep 1000
@@ -50,11 +50,11 @@ namespace Loop {
             sleep 3000
             clear
         }
-        elif ("$input" = "save") {
+        elif ("$input" == "save") {
             getline file "To file: "
             Nodes.save_to_file "$file"
         }
-        elif ("$input" = "load") {
+        elif ("$input" == "load") {
             getline file "From file: "
             Nodes.from_file "$file"
         }

@@ -14,14 +14,14 @@ func reset_field [] {
 }
 
 func set_field [row,col,player] {
-    if ($row = 0) {
+    if ($row == 0) {
         list -g field [ !{put !{take 0 field } $col $player} , !{take 1 field } , !{take 2 field } ]
     }
-    elif ($row = 1) {
+    elif ($row == 1) {
         list -g field [ !{take 0 field }, !{put !{take 1 field } $col $player}, !{take 2 field } ]
 
     }
-    elif ($row = 2) {
+    elif ($row == 2) {
         list -g field [ !{take 0 field } , !{take 1 field } , !{put !{take 2 field } $col $player} ]
     }
     else {
@@ -32,10 +32,10 @@ func set_field [row,col,player] {
 func handle_input [player] {
     while (true) {
         getline r Row:
-        if ($r = q) {
+        if ($r == q) {
             exit
         }
-        if ($r = reset) {
+        if ($r == reset) {
             reset_field
             clear
             draw_field

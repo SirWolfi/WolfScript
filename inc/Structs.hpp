@@ -9,6 +9,8 @@
 #include "ArgParser/ArgParser.h"
 #include "Tools.hpp"
 
+WOLF_SCRIPT_HEADER_BEGIN
+
 struct Function;
 struct Class;
 struct List;
@@ -44,6 +46,7 @@ struct Function {
     Class* owner = nullptr;
 
     bool failed = false;
+    bool blocked = false;
 };
 
 struct Class {
@@ -156,7 +159,10 @@ struct Command {
     ArgParser parser;
     int (*fun)(ParsedArgs pargs);
     bool replace_v = true;
+    bool blocked = false;
     bool save_scope = false;
 };
+
+WOLF_SCRIPT_HEADER_END
 
 #endif // ifndef STRUCTS_HPP

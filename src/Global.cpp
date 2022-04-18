@@ -1,8 +1,14 @@
 #include "../inc/Global.hpp"
 
+WOLF_SCRIPT_SOURCE_FILE
+
 bool Global::in_class() { return in_class_i != 0; }
 
 std::string Global::get_variable(std::string var, std::vector<std::string> from_namespaces) {
+    if(var == "$" || var == "") {
+        return var;
+    }
+
     if(!from_namespaces.empty()) {
         std::string total_name = "";
         for(int i = from_namespaces.size()-1; i != -1; --i) {
@@ -143,8 +149,14 @@ bool Global::is_list(std::string list) {
 
 bool Global::is_var(std::string var) {
     LOG("checking if " << var << " is a variable...")
-    if(var != "" && var.front() == '$') {
+    if(var != "" && var.front() == '$' && var != "$") {
         var.erase(var.begin());
+    }
+    if(var == "$") {
+        return true;
+    }
+    if(var == "") {
+        return false;
     }
 
     int idx = Global::current_scope()->index;
@@ -182,7 +194,17 @@ List Global::get_list(std::string list) {
     return List();
 }
 
-Function Global::get_function(std::string name, std::vector<std::string> from_namespaces) {
+Function Global::get_function(std::string name, std::vector<std::string> from_namespaces, bool also_blocked) {
+    Function* r = get_functionptr(name,from_namespaces,also_blocked);
+    if(r == nullptr) {
+        Function ret;
+        ret.failed = true;
+        return ret;
+    }
+    return *r;
+}
+
+Function* Global::get_functionptr(std::string name, std::vector<std::string> from_namespaces, bool also_blocked) {
     if(!from_namespaces.empty()) {
         std::string total_name = "";
         for(int i = from_namespaces.size()-1; i != -1; --i) {
@@ -191,8 +213,8 @@ Function Global::get_function(std::string name, std::vector<std::string> from_na
             while(idx != -1 && !Global::get_scope(idx)->freed) {
                 LOG("Searching function with index: " << idx)
                 for(auto& i : Global::cache::saved_scopes[idx].functions) {
-                    if(i.name == nname) {
-                        return i;
+                    if(i.name == nname && (!i.blocked || also_blocked)) {
+                        return &i;
                     }
                 }
                 idx = Global::cache::saved_scopes[idx].parent;
@@ -211,8 +233,8 @@ Function Global::get_function(std::string name, std::vector<std::string> from_na
             while(idx != -1 && !Global::get_scope(idx)->freed) {
                 LOG("Searching function with index: " << idx)
                 for(auto& i : Global::cache::saved_scopes[idx].functions) {
-                    if(i.name == nname) {
-                        return i;
+                    if(i.name == nname && (!i.blocked || also_blocked)) {
+                        return &i;
                     }
                 }
                 idx = Global::cache::saved_scopes[idx].parent;
@@ -224,23 +246,20 @@ Function Global::get_function(std::string name, std::vector<std::string> from_na
     while(idx != -1 && !Global::get_scope(idx)->freed) {
         LOG("Searching function with index: " << idx)
         for(auto& i : Global::cache::saved_scopes[idx].functions) {
-            if(i.name == name) {
-                return i;
+            if(i.name == name && (!i.blocked || also_blocked)) {
+                return &i;
             }
         }
         idx = Global::cache::saved_scopes[idx].parent;
     }
 
-    Function ret;
-    ret.failed = true;
-    return ret;
+    return nullptr;
 }
 
 void Global::push_scope(std::map<std::string,std::string> add_vars, int load_idx) {
     LOG("pushing scope!")
     if(load_idx >= -1) {
         Scope scp;
-
 
         scp.variables = add_vars;
         if(!scopes.empty()) {
@@ -272,7 +291,7 @@ void Global::push_scope(std::map<std::string,std::string> add_vars, int load_idx
 void Global::pop_scope(bool keep_save) {
     LOG("Poping scope...")
     if(!scopes.empty()) {
-        LOG("poping index:" << scopes.top() << "; saved_scopes.size() = " << cache::saved_scopes.size())
+        LOG("poping index:" << scopes.top() << "; saved_scopes.size() == " << cache::saved_scopes.size())
         if(!keep_save) {
             cache::saved_scopes[scopes.top()].freed = true;
         }

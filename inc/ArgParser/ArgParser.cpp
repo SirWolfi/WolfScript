@@ -157,9 +157,9 @@ ParsedArgs ArgParser::parse(std::vector<std::string> args) {
     failed = false;
     for(size_t i = 0; i < args.size(); ++i) {
         size_t index = find(args[i],failed);
-        LOG("find(" << args[i] << ") = " << index << " | failed:" << failed)
+        LOG("find(" << args[i] << ") == " << index << " | failed:" << failed)
         if(failed) {
-            //LOG("failed = true")
+            //LOG("failed == true")
             //return ParsedArgs({},true);
             index = find_next_getarg(failed);
             if(failed) {
@@ -191,7 +191,7 @@ ParsedArgs ArgParser::parse(std::vector<std::string> args) {
             }
 
             this->args[index].val = args[i+1];
-            LOG("this->args[" << index << "] = " << args[i+1])
+            LOG("this->args[" << index << "] == " << args[i+1])
             ++i;
         }
         else if (this->args[index].type == ARG_TAG) {

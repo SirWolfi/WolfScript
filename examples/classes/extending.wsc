@@ -19,12 +19,12 @@ class B {
 
 B a
 A b
-echo a:x = $a:x
-echo a:y = $a:y
-echo a:z = $a:z
-echo b:x = $b:x
-echo b:y = $b:y
-echo b:z = $b:z
+echo a:x == $a:x
+echo a:y == $a:y
+echo a:z == $a:z
+echo b:x == $b:x
+echo b:y == $b:y
+echo b:z == $b:z
 
 a:foo
 b:foo

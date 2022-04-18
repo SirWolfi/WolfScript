@@ -1,6 +1,8 @@
 #include "../inc/Handlers.hpp"
 #include "../inc/Commands.hpp"
 
+WOLF_SCRIPT_SOURCE_FILE
+
 void replace_sys_vars(std::string var, std::string& ed) {
     if(var == "__MAIN__") {
         ed += (Global::current_main_file.top() ? "true" : "false");
@@ -30,8 +32,15 @@ void replace_sys_vars(std::string var, std::string& ed) {
 static std::string getvrs(std::string tmp) {
     LOG("getvrs with:" << tmp)
     std::string ed;
-    if(tmp[0] == '$') {
+
+    if(tmp != "" && tmp.front() == '$' && tmp != "$") {
         tmp.erase(tmp.begin());
+    }
+    if(tmp == "$") {
+        return "$";
+    }
+    if(tmp == "") {
+        return "";
     }
 
     std::string old_ed = ed;
@@ -128,7 +137,7 @@ static std::string getvrs(std::string tmp) {
     return ed;
 }
 
-std::string replace_vars(std::string str) {
+std::string WolfScript::replace_vars(std::string str) {
     LOG("replacing vars in scope: " << str)
 
     std::string tmp;
@@ -137,17 +146,18 @@ std::string replace_vars(std::string str) {
     for(auto i : str) {
         if(i == '$') {
             if(in) {
-                if(tmp != "") {
+                if(tmp != "" && tmp != "$") {
                     ed += getvrs(tmp);
                     tmp = "";
                 }
                 else {
                     ed += "$";
+                    tmp = "";
                 }
             }
             in = true;
         }
-        else if(in && IniHelper::tls::isIn(i,{'#','+','-','~','%','&','!',';',',','<','>','|',' ','\t','\r','\n','\0',')','(','}','{','\\','"'})) {
+        else if(in && IniHelper::tls::isIn(i,{':','#','+','-','~','%','&','!',';',',','<','>','|',' ','\t','\r','\n','\0',')','(','}','{','\\','"','^'})) {
             if(tmp != "") {
                 ed += getvrs(tmp);
                 tmp = "";
@@ -169,7 +179,7 @@ std::string replace_vars(std::string str) {
     return ed;
 }
 
-std::vector<std::string> replace_vars(std::vector<std::string> vec) {
+std::vector<std::string> WolfScript::replace_vars(std::vector<std::string> vec) {
     for(size_t i = 0; i < vec.size(); ++i) {
         // TODO: make this better!
         while(!vec[i].empty() && Tools::is_empty(std::string(1,vec[i].front()))) {
@@ -186,7 +196,7 @@ std::vector<std::string> replace_vars(std::vector<std::string> vec) {
     return vec;
 }
 
-std::string handle_sexpr(std::string expr, bool& failed, bool already_called) {
+std::string WolfScript::handle_expr(std::string expr, bool& failed, bool already_called) {
     if(!Tools::br_check(expr,'(',')')) {
         Global::err_msg = "Brace missmatch!";
         failed = true;
@@ -198,8 +208,11 @@ std::string handle_sexpr(std::string expr, bool& failed, bool already_called) {
     auto exprv = IniHelper::tls::split_by(expr, {' ','\t'}, {}, opersnames ,true,true,true);
 
     for(size_t i = 0; i < exprv.size(); ++i) {
+        LOG(exprv[i] << " == !")
         if(exprv[i] == "!") {
-            if(i+2 != exprv.size() && Tools::br_check(exprv[i+1],'{','}')) {
+            LOG("-> " << Tools::br_check(exprv[i+1],'{','}'))
+            if(i+1 != exprv.size() && Tools::br_check(exprv[i+1],'{','}')) {
+                LOG("changing: \"" << exprv[i+1] << "\" to \"" << "!" + exprv[i+1])
                 exprv[i+1] = "!" + exprv[i+1];
                 exprv.erase(exprv.begin()+i);
                 --i;
@@ -208,14 +221,25 @@ std::string handle_sexpr(std::string expr, bool& failed, bool already_called) {
         }
     }
 
+    exprv = operator_tls::merge_operator_names(exprv);
+
     if(exprv.size() == 1) {
         if(already_called) {
+            Global::err_msg = "Invalid expression!";
             failed = true;
             return "";
         }
+        std::string c = check_subshell(replace_vars(expr));
+        if(Tools::is_true(c)) {
+            return "true";
+        }
+        else if(Tools::is_false(c)) {
+            return "false";
+        }
+
         failed = false;
         expr = check_subshell(replace_vars(expr));
-        return handle_sexpr("(" + expr + ")",failed,true);
+        return handle_expr("(" + expr + ")",failed,true);
     }
 
     if(exprv.size() != 3) {
@@ -227,138 +251,54 @@ std::string handle_sexpr(std::string expr, bool& failed, bool already_called) {
     std::string left = exprv[0];
     std::string right = exprv[2];
     if(Tools::br_check(left,'(',')')) {
-        left = handle_sexpr(left,failed);
+        left = handle_expr(left,failed);
     }
     if(Tools::br_check(left,'(',')')) {
-        right = handle_sexpr(right,failed);
+        right = handle_expr(right,failed);
     }
 
     left = check_subshell(replace_vars(exprv[0]));
     std::string oper = check_subshell(replace_vars(exprv[1]));
     right = check_subshell(replace_vars(exprv[2]));
 
-    LOG("handling normal expression: " << left << oper << right << " <= " << expr)
+    LOG("handling expression: " << left << oper << right << " (from: " << expr << " )")
 
-    for(auto i : operators) {
-        if(i.name == oper) {
-            LOG("returned: " << i.fun(left,right,failed))
-            return i.fun(left,right,failed);
-        }
+    Operator op = operator_tls::get_native_operator(oper);
+    if(op.name != "") {
+        return operator_tls::remove_commas(op.fun(left,right,failed));
     }
+    
+    Operator_custom opc = operator_tls::get_custom_operator(oper);
+
+    if(opc.name != "") {
+        ++Global::settings::block_uncatched_out;
+        ++Global::settings::disable_global_set;
+        ++Global::settings::disable_return;
+        ++Global::in_subshell;
+
+        std::map<std::string,std::string> mp;
+        mp["left"] = left;
+        mp["right"] = right;
+        std::string ret = WS_CATCH_OUTPUT(
+            Global::error_code = run_text(opc.body,false,mp);
+        );
+
+        --Global::in_subshell;
+        --Global::settings::disable_global_set;
+        --Global::settings::block_uncatched_out;
+        --Global::settings::disable_return;
+
+        failed = Global::error_code != 0;
+        return operator_tls::remove_commas(ret);
+    }
+
     LOG("No such operator!")
+    Global::err_msg = "No such operator (" + oper + ") !";
     failed = true;
     return "";
 }
 
-bool handle_bexpr(std::string expr, bool& failed) {
-    if(!Tools::br_check(expr,'(',')')) {
-        Global::err_msg = "Brace missmatch!";
-        failed = true;
-        return false;
-    }
-
-    expr.pop_back();
-    expr.erase(expr.begin());
-
-    auto exprv = IniHelper::tls::split_by(expr, {' ','\t'}, {}, {'=','!','>','<'},true,true,true);
-
-    for(size_t i = 0; i < exprv.size(); ++i) {
-        if(exprv[i] == "!") {
-            LOG("Found a \"!\"" << " (" << i << "+1 != " << exprv.size() << "-1 )")
-            if(i+1 != exprv.size() && Tools::br_check(exprv[i+1],'{','}')) {
-                exprv[i+1] = "!" + exprv[i+1];
-                exprv.erase(exprv.begin()+i);
-                --i;
-                continue;
-            }
-            LOG("Not for a subshell...")
-        }
-    }
-
-    if(exprv.size() == 1) {
-        auto check = replace_vars(expr);
-        failed = false;
-        return check == "true" || check == "TRUE" || check == "1" || check == "True";
-    }
-
-    if(exprv.size() != 3) {
-        LOG("To big/not long enough expression. Size:" << exprv.size())
-        Global::err_msg = "Invalid expression!";
-        failed = true;
-        return false;
-    }
-
-    std::string left = exprv[0];
-    std::string right = exprv[2];
-    if(Tools::br_check(left,'(',')')) {
-        left = handle_sexpr(left,failed);
-    }
-    if(Tools::br_check(left,'(',')')) {
-        right = handle_sexpr(right,failed);
-    }
-
-    left = check_subshell(replace_vars(exprv[0]));
-    std::string oper = check_subshell(replace_vars(exprv[1]));
-    right = check_subshell(replace_vars(exprv[2]));
-
-    LOG("handling expression: " << left << oper << right << " <= " << expr)
-
-    if(oper == "=") {
-        return left == right;
-    }
-    if(oper == "!") {
-        return left != right;
-    }
-    if(oper == "<") {
-        bool d1 = false, d2 = false;
-        if(Tools::all_numbers(left,d1) && Tools::all_numbers(right,d1)) {
-            if(d1 && d2) {
-                return std::stod(left) < std::stod(right);
-            }
-            else if(d1 && !d2) {
-                return std::stod(left) < std::stoi(right);
-            }
-            else if(!d1 && d2) {
-                return std::stoi(left) < std::stod(right);
-            }
-            else if(!d1 && !d2) {
-                return std::stoi(left) < std::stoi(right);
-            }
-        }
-        else {
-            Global::err_msg = "Invalid expression!";
-            failed = true;
-            return false;
-        }
-    }
-    if(oper == ">") {
-        bool d1 = false, d2 = false;
-        if(Tools::all_numbers(left,d1) && Tools::all_numbers(right,d1)) {
-            if(d1 && d2) {
-                return std::stod(left) > std::stod(right);
-            }
-            else if(d1 && !d2) {
-                return std::stod(left) > std::stoi(right);
-            }
-            else if(!d1 && d2) {
-                return std::stoi(left) > std::stod(right);
-            }
-            else if(!d1 && !d2) {
-                return std::stoi(left) > std::stoi(right);
-            }
-        }
-        else {
-            Global::err_msg = "Invalid expression!";
-            failed = true;
-            return false;
-        }
-        return false;
-    }
-    failed = true;
-    return false;
-}
-
-int run_subshell(std::string sh) {
+int WolfScript::run_subshell(std::string sh) {
     ++Global::in_subshell;
     fs::path cr_path = Global::current.top();
     auto mp = Global::current_scope()->variables;
@@ -384,7 +324,7 @@ int run_subshell(std::string sh) {
     return err;
 }
 
-std::string check_subshell(std::string str) {
+std::string WolfScript::check_subshell(std::string str) {
     if(str.size() < 3 || str[0] != '!') {
         return str;
     }
@@ -393,12 +333,12 @@ std::string check_subshell(std::string str) {
 
     if(Tools::br_check(str,'{','}')) {
         LOG("valid subshell!")
-        return CATCH_OUTPUT(Global::error_code = run_subshell('!' + str););
+        return WS_CATCH_OUTPUT(Global::error_code = run_subshell('!' + str););
     }
     return '!' + str;
 }
 
-std::vector<std::string> check_subshell(std::vector<std::string> str) {
+std::vector<std::string> WolfScript::check_subshell(std::vector<std::string> str) {
     auto cp = str;
     for(auto& i : cp) {
         LOG("checking if " << i << "is a subshell")
@@ -407,40 +347,43 @@ std::vector<std::string> check_subshell(std::vector<std::string> str) {
     return cp;
 }
 
-size_t find(std::string name, bool& failed, bool& function);
-
-size_t find(std::string name, bool& failed, bool& function) {
-    for(size_t i = 0; i < commands.size(); ++i) {
-        if(commands[i].name == name) {
-            failed = false;
-            function = false;
-            return i;
-        }
-        else {
-            for(auto j : commands[i].aliases) {
-                if(j == name) {
-                    function = false;
-                    failed = false;
-                    return i;
+size_t WolfScript::find(std::string name, bool& failed, bool& function, bool also_blocked, int only) {
+    if(only == 0 || only == 1) {
+        for(size_t i = 0; i < commands.size(); ++i) {
+            if(commands[i].name == name && (!commands[i].blocked || also_blocked)) {
+                failed = false;
+                function = false;
+                return i;
+            }
+            else if (!commands[i].blocked || also_blocked) {
+                for(auto j : commands[i].aliases) {
+                    if(j == name) {
+                        function = false;
+                        failed = false;
+                        return i;
+                    }
                 }
             }
         }
     }
-
-    Function fun = Global::get_function(name);
-    if(!fun.failed) {
-        LOG("Is function!")
-        function = true;
-        failed = false;
-        return 0;
+    
+    if(only == 0 || only == 2) {
+        Function fun = Global::get_function(name);
+        if(!fun.failed) {
+            LOG("Is function!")
+            function = true;
+            failed = false;
+            return 0;
+        }
     }
+    
     LOG("Failed!")
     function = false;
     failed = true;
     return 0;
 }
 
-void run_function(Function fun, std::vector<std::string> lex, std::map<std::string,std::string> add) {
+void WolfScript::run_function(Function fun, std::vector<std::string> lex, std::map<std::string,std::string> add) {
     LOG("calling run_function() ...")
     
     if(fun.name.back() != '~') {
@@ -494,8 +437,9 @@ void run_function(Function fun, std::vector<std::string> lex, std::map<std::stri
         Global::pop_call_stack();
 }
 
-int run(std::vector<std::string> lines, bool main, std::map<std::string,std::string> add,bool new_scope, bool pop_kind, int load_idx) {
+int WolfScript::run(std::vector<std::string> lines, bool main, std::map<std::string,std::string> add,bool new_scope, bool pop_kind, int load_idx) {
     if(new_scope) {
+        LOG("Pushing new scope with add.size() = " << add.size())
         Global::push_scope(add,load_idx);
         if(main) {
             Global::current_scope()->current_file = Global::last_file;
@@ -629,6 +573,12 @@ int run(std::vector<std::string> lines, bool main, std::map<std::string,std::str
     return Global::error_code;
 }
 
+
+int WolfScript::run_text(std::string text, bool main, std::map<std::string,std::string> add, bool new_scope, bool pop_kind, int load_idx) {
+    auto lines = IniHelper::tls::split_by(text,{'\n','\0'},{},{},true,false,false);
+    return run(lines,main,add,new_scope,pop_kind,load_idx);
+}
+
 void error_message(int code) {
     std::string lline = Tools::until_newline(Global::last_line);
     int err_size = std::to_string(Global::current_scope()->instruction).size() + lline.size() + 7;
@@ -648,7 +598,7 @@ void error_message(int code) {
     }
 }
 
-int run_file(std::string pfile, bool main, bool allow_twice) {
+int WolfScript::run_file(std::string pfile, bool main, bool allow_twice) {
     if(!Global::current.empty()) {
         Global::current.push(Global::current.top().parent_path().string() + SP + fs::path(pfile).remove_filename().string());
     }   

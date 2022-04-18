@@ -1,4 +1,3 @@
-
 #include <filesystem>
 #include <thread>
 #include <string.h>
@@ -24,7 +23,7 @@ void shell() {
 }*/
 
 void help_message() {
-    std::cout << "WolfScript interpreter to run .ws|.wsc scripts. (Version:" << Global::version << ")\n"
+    std::cout << "WolfScript interpreter to run .ws|.wsc scripts. (Version:" << WolfScript::Global::version << ")\n"
                   << "Usage: \n"
                   << "helper [option] [file]\n\n"
                   << "Runs FILE. \n\n" // If FILE is not given, starts a WolfScript-shell.\n\n"
@@ -35,7 +34,7 @@ void help_message() {
 }
 
 int main(int argc, char** argv) {
-    Global::version = Tools::read("Version.txt");
+    WolfScript::Global::version = WolfScript::Tools::read("VERSION.txt");
 
     logging::file = ""; // disables logging
     CLEAR_LOG
@@ -56,8 +55,7 @@ int main(int argc, char** argv) {
         logging::file = "Debug.log";
         CLEAR_LOG
     }
-
-    if(pargs["--help"]) {
+    else if(pargs["--help"]) {
         help_message();
     }
     //else if(!pargs.has("file")) {
@@ -65,8 +63,8 @@ int main(int argc, char** argv) {
     //}
     else if(pargs.has("file")) {
         fs::path file = std::filesystem::current_path().string() + SP + std::filesystem::path(pargs("file")).remove_filename().string();
-        Global::start_path = file;
-        run_file(fs::path(pargs("file")).filename().string(),true);
+        WolfScript::Global::start_path = file;
+        WolfScript::run_file(fs::path(pargs("file")).filename().string(),true);
     }
     else {
         help_message();

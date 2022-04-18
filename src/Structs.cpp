@@ -1,5 +1,7 @@
 #include "../inc/Structs.hpp"
 
+WOLF_SCRIPT_SOURCE_FILE
+
 Function Class::get_method(std::string name) {
     for(auto i : methods) {
         if(i.name == name) {

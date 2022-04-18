@@ -51,6 +51,7 @@ struct Arg
     /// type = 1:   set     (takes 1 arg with call)
     /// type = 0:   tag     (takes no arg with call)
     ///
+
     Priority priority = Priority::FORCE;
     int type = 0;
     std::string name;

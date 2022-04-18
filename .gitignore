@@ -2,7 +2,9 @@
 helper
 *.inipp
 *.bash
+*.txt
 test*.wsc
 .vscode
 wolf-script
 examples/file_io
+Makefile

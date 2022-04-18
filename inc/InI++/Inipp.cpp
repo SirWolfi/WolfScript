@@ -743,8 +743,6 @@ IniVector IniHelper::to_vector(std::string source) {
         return IniVector();
     }
 
-
-
     return vec;
 }
 

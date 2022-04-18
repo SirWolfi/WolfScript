@@ -12,6 +12,8 @@ namespace fs = std::filesystem;
 
 #define SAVE_IN_NAMESPACE_GET (Global::in_namespace.empty() ? std::vector<std::string>({}) : Global::in_namespace.top())
 
+WOLF_SCRIPT_HEADER_BEGIN
+
 namespace Global {
 
     inline std::string version;
@@ -23,7 +25,6 @@ namespace Global {
     inline std::string start_path;
     inline int error_code = 0;
     inline bool exit_request = false;
-    inline int disable_global_setting = 0;
     inline int pop_run_request = 0;
     inline std::string err_msg = "";
     inline std::map<std::string,List> global_lists;
@@ -57,6 +58,25 @@ namespace Global {
         inline std::vector<Scope> saved_scopes;
     } // namespace cache
 
+    namespace settings {
+            inline int disable_global_set = 0;
+            inline int disable_access_use = 0;
+            inline int disable_import = 0;
+            inline int disable_extend = 0;
+            inline int disable_no_new_feature = 0;
+            inline int disable_user_input = 0;
+            inline int disable_screen_manipulation = 0;
+            inline int disable_sleep = 0;
+            inline int disable_return = 0;
+
+            inline int block_change_of_path = 0;
+            inline int block_normal_out = 0;
+            inline int block_uncatched_out = 0;
+            inline int block_file_output = 0;
+            inline int block_throws = 0;
+            void reset();
+    } // namespace settings
+
     bool in_class();
 
     std::string get_variable(std::string var, std::vector<std::string> from_namespaces = SAVE_IN_NAMESPACE_GET);
@@ -71,7 +91,8 @@ namespace Global {
 
     List get_list(std::string list);
 
-    Function get_function(std::string name, std::vector<std::string> from_namespaces = SAVE_IN_NAMESPACE_GET);
+    Function get_function(std::string name, std::vector<std::string> from_namespaces = SAVE_IN_NAMESPACE_GET, bool also_blocked = false);
+    Function* get_functionptr(std::string name, std::vector<std::string> from_namespaces = SAVE_IN_NAMESPACE_GET, bool also_blocked = false);
 
     void push_scope(std::map<std::string,std::string> add_vars, int load_idx = -1);
 
@@ -113,5 +134,7 @@ namespace Global {
     Scope* get_scope(int idx);
 
 } // namespace Global
+
+WOLF_SCRIPT_HEADER_END
 
 #endif // ifndef GLOBAL_HPP

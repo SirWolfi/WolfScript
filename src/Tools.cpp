@@ -1,6 +1,8 @@
 #include "../inc/Tools.hpp"
 #include "../inc/Structs.hpp"
 
+WOLF_SCRIPT_SOURCE_FILE
+
 bool Tools::is_empty(std::string str) {
     if(str == "") {
         return true;
@@ -168,4 +170,18 @@ std::vector<Class> Tools::merge_classes(std::vector<Class> f1, std::vector<Class
     }
     err_msg = "";
     return ret;
+}
+
+bool Tools::is_true(std::string str) {
+    return str == "true" ||
+           str == "True" ||
+           str == "TRUE" ||
+           str == "1";
+}
+
+bool Tools::is_false(std::string str) {
+    return str == "false" ||
+           str == "False" ||
+           str == "FALSE" ||
+           str == "0";
 }

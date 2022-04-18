@@ -8,11 +8,13 @@
 
 #include "InI++/Inipp.hpp"
 
-class Function;
-class Class;
+#define WOLF_SCRIPT_HEADER_BEGIN namespace WolfScript {
+#define WOLF_SCRIPT_HEADER_END }
 
-#define PRINT_VEC(vec) { std::cout << "["; for(auto i : vec) { std::cout << i << ","; } std::cout << "]\n"; }
-#define CATCH_OUTPUT(code) \
+#define WOLF_SCRIPT_SOURCE_FILE using namespace WolfScript;
+
+#define WS_PRINT_VEC(vec) { WolfScript::Global::uncatch << "["; for(auto i : vec) { WolfScript::Global::uncatch << i << ","; } WolfScript::Global::uncatch << "]\n"; }
+#define WS_CATCH_OUTPUT(code) \
             [&]()->std::string {                                \
                 std::streambuf* oldBuffer = std::cout.rdbuf();  \
                 std::ostringstream cath;                        \
@@ -22,8 +24,8 @@ class Class;
                 return cath.str();                              \
             } ();                                               \
 
-#define IN_CLASS_CHECK(bl)                                              \
-    if(Global::in_class() == !bl) {                                     \
+#define WS_IN_CLASS_CHECK(bl)                                           \
+    if(WolfScript:: Global::in_class() == !bl) {                        \
         if(!bl)                                                         \
             Global::err_msg = "Can't use this command inside a class!"; \
         else                                                            \
@@ -35,8 +37,16 @@ class Class;
 # define SP "\\"
 #elif defined(__linux__)
 # define SP "/"
+#else
+# define SP "/"
+# define WS_UNKNOWN_OS
 #endif
 
+
+WOLF_SCRIPT_HEADER_BEGIN
+
+struct Function;
+struct Class;
 
 namespace Tools {
 
@@ -67,7 +77,11 @@ namespace Tools {
 
     std::vector<Function> merge_functions(std::vector<Function> f1, std::vector<Function> f2,std::string& err_msg,bool lookfor_virtual = false);
     std::vector<Class> merge_classes(std::vector<Class> f1, std::vector<Class> f2, std::string& err_msg);
+
+    bool is_true(std::string str);
+    bool is_false(std::string str);
 }
 
+WOLF_SCRIPT_HEADER_END
 
 #endif // ifndef TOOLS_HPP
