@@ -19,5 +19,5 @@ wolf-script <script>
 
 
 ## How It Works
-Please read the wiki [here](www.github.com/SirWolfi/WolfScript/wiki/Introduction)! <br>
+Please read the wiki [here](https://github.com/SirWolfi/WolfScript/wiki/Introduction)! <br>
 
