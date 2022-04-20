@@ -55,7 +55,8 @@ int main(int argc, char** argv) {
         logging::file = "Debug.log";
         CLEAR_LOG
     }
-    else if(pargs["--help"]) {
+    
+    if(pargs["--help"]) {
         help_message();
     }
     //else if(!pargs.has("file")) {

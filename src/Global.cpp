@@ -65,10 +65,13 @@ std::string Global::get_variable(std::string var, std::vector<std::string> from_
 }
 
 void Global::set_variable(std::string name, std::string val, bool no_new, std::vector<std::string> from_namespaces) {
+    LOG("Setting variable (" << name << ")")
     if(!no_new) {
+        LOG("Making a new variable for scope...")
         current_scope()->variables[name] = val;
     }
     else {
+        LOG("Not making a new variable...")
         if(!from_namespaces.empty()) {
             std::string total_name = "";
             for(int i = from_namespaces.size()-1; i != -1; --i) {
@@ -76,6 +79,7 @@ void Global::set_variable(std::string name, std::string val, bool no_new, std::v
                 int idx = Global::current_scope()->index;
                 while(idx != -1 && !Global::get_scope(idx)->freed) {
                     for(auto& i : Global::cache::saved_scopes[idx].variables) {
+                        LOG("Checking for " << i.first << " == " << nname << " within idx:" << idx)
                         if(i.first == nname) {
                             Global::cache::saved_scopes[idx].variables[nname] = val;
                             return;

@@ -190,9 +190,9 @@ inline std::vector<Command> commands = {
             Global::set_global_variable(pargs("name"),val);
         }
         else {
-            bool nw = Global::settings::disable_no_new_feature = 0;
+            bool nw = false;
             if(pargs["-no-new"]) {
-                nw &= Global::settings::disable_global_set == 0;
+                nw = Global::settings::disable_global_set == 0 && Global::settings::disable_no_new_feature == 0;
             }
             
             Global::set_variable(pargs("name"),val,nw, (Global::in_namespace.empty() ? std::vector<std::string>({}) : Global::in_namespace.top()));
